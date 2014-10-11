@@ -18,12 +18,7 @@ try
 	if (!$Host->isValid())
 		throw new Exception(_('Invalid Host'));
 	// Task for Host
-	$Tasks = $Host->get('task');
-	foreach($Tasks AS $Task)
-	{
-		if ($Task->isValid() && !in_array($Task->get('typeID'),array(4,12,13)))
-			break;
-	}
+	$Task = $Host->get('task');
 	if (!$Task->isValid())
 		throw new Exception(sprintf('%s: %s (%s)', _('No Active Task found for Host'), $Host->get('name'), $MACAddress));
 	$TaskType = new TaskType($Task->get('typeID'));
@@ -52,8 +47,8 @@ try
 			// Set the src based on the image and node path.
 			$src = $StorageNode->get('path').'/dev/'.$macftp;
 			// XP only, typically, had one part so only need the file part.
-			if (($_REQUEST['osid'] == '1' || $_REQUEST['osid'] == '2') && $_REQUEST['imgtype'] == 'n')
-				$src = $StorageNode->get('path').'/dev/'.$macftp.'/'.$macftp.'.000';
+			//if (($_REQUEST['osid'] == '1' || $_REQUEST['osid'] == '2') && $_REQUEST['imgtype'] == 'n')
+			//	$src = $StorageNode->get('path').'/dev/'.$macftp.'/'.$macftp.'.000';
 			// Where is it going?
 			$dest = $StorageNode->get('path').'/'.$_REQUEST['to'];
 			//Attempt transfer of image file to Storage Node
@@ -75,7 +70,7 @@ try
 	if ($Image->get('format') == 1)
 		$Image->set('format',0)->save();
 	// Complete the Task.
-	$Task->set('stateID','4');
+	$Task->set('stateID','4')->set('pct','100')->set('percent','100');
 	if (!$Task->save())
 		throw new Exception(_('Failed to update Task'));
 	// Log it

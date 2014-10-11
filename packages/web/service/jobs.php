@@ -11,14 +11,18 @@ try
 	if (!$Host->isValid())
 		throw new Exception('#!er:No Host Found');
 	// Find out about tasks in queue.
-	$Task = current($Host->get('task'));
+	$Task = $Host->get('task');
 	// If there is no task, or it's of snapin deploy type, don't reboot.
 	if (!$Task->isValid() || ($Task->get('typeID') == 12 || $Task->get('typeID') == 13))
-		throw new Exception('#nj');
+		throw new Exception('#!nj');
 	else
-		print ('#!ok');
+		$Datatosend = "#!ok";
 }
 catch (Exception $e)
 {
-	print $e->getMessage();
+	$Datatosend = $e->getMessage();
 }
+if ($FOGCore->getSetting('FOG_NEW_CLIENT') && $FOGCore->getSetting('FOG_AES_ENCRYPT'))
+	print "#!en=".$FOGCore->aesencrypt($Datatosend,$FOGCore->getSetting('FOG_AES_PASS_ENCRYPT_KEY'));
+else
+	print $Datatosend;

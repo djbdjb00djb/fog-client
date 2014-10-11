@@ -30,6 +30,7 @@ class Task extends FOGController
 		'NFSLastMemberID'	=> 'taskLastMemberID',
 		'shutdown'			=> 'taskShutdown',
 		'passreset'			=> 'taskPassreset',
+		'isDebug'			=> 'taskIsDebug',
 	);
 	// Required database fields
 	public $databaseFieldsRequired = array(
@@ -56,18 +57,19 @@ class Task extends FOGController
 	}
 	public function getInFrontOfHostCount()
 	{
-		$Tasks = $this->FOGCore->getClass('TaskManager')->find(array(
+		$Tasks = $this->getClass('TaskManager')->find(array(
 			'stateID' => array(1,2),
 			'typeID' => array(1,15,17),
 			'NFSGroupID' => $this->get('NFSGroupID'),
 		));
 		$count = 0;
-		$curTime = strtotime(date('Y-m-d H:i:s'));
+		$curTime = $this->nice_date();
 		foreach($Tasks AS $Task)
 		{
 			if ($this->get('id') > $Task->get('id'))
 			{
-				if ($curTime - strtotime($Task->get('checkInTime')) < $this->FOGCore->getSetting('FOG_CHECKIN_TIMEOUT'))
+				$tasktime = $this->nice_date($Task->get('checkInTime'));
+				if (($curTime->getTimestamp() - $tasktime->getTimestamp()) < $this->FOGCore->getSetting('FOG_CHECKIN_TIMEOUT'))
 					$count++;
 			}
 		}
@@ -83,18 +85,18 @@ class Task extends FOGController
 	{
 		// Check in time: Convert Unix time to MySQL datetime
 		if ($this->key($key) == 'checkInTime' && is_numeric($value) && strlen($value) == 10)
-			$value = date('Y-m-d H:i:s', $value);
+			$value = $this->nice_date($value)->format('Y-m-d H:i:s');
 		// Return
 		return parent::set($key, $value);
 	}
 	public function destroy($field = 'id')
 	{
 	    $Host = new Host($this->get('hostID'));
-		$SnapinJobs = $this->FOGCore->getClass('SnapinJobManager')->find(array('hostID' => $Host->get('id')));
+		$SnapinJobs = $this->getClass('SnapinJobManager')->find(array('hostID' => $Host->get('id')));
 		if($SnapinJobs)
 		{
 			foreach($SnapinJobs AS $SnapinJob)
-				$SnapinTasks[]= $this->FOGCore->getClass('SnapinTaskManager')->find(array('jobID' => $SnapinJob->get('id'),'stateID' => array(0,1)));
+				$SnapinTasks[]= $this->getClass('SnapinTaskManager')->find(array('jobID' => $SnapinJob->get('id'),'stateID' => array(0,1)));
 		}
 		// cancel's all the snapin tasks for that host.
 		if ($SnapinTasks)
@@ -132,7 +134,7 @@ class Task extends FOGController
 	}
 	public function getTaskTypeText()
 	{
-		return (string)($this->getTaskType()->get('name') ? $this->getTaskType()->get('name') : _('Unknown'));
+		return (string)($this->getTaskType()->get('name') ? $this->getTaskType()->get('name') : $this->foglang['Unknown']);
 	}
 	public function getTaskState()
 	{
@@ -140,6 +142,6 @@ class Task extends FOGController
 	}
 	public function getTaskStateText()
 	{
-		return (string)($this->getTaskState()->get('name') ? $this->getTaskState()->get('name') : _('Unknown'));
+		return (string)($this->getTaskState()->get('name') ? $this->getTaskState()->get('name') : $this->foglang['Unknown']);
 	}
 }

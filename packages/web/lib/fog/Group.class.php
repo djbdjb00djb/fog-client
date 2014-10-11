@@ -29,7 +29,7 @@ class Group extends FOGController
         {   
             if ($this->get('id'))
             {   
-                $GroupAssocs = $this->FOGCore->getClass('GroupAssociationManager')->find(array('groupID' => $this->get('id')));
+                $GroupAssocs = $this->getClass('GroupAssociationManager')->find(array('groupID' => $this->get('id')));
                 foreach($GroupAssocs AS $GroupAssoc)
                     $this->add('hosts', new Host($GroupAssoc->get('hostID')));
             }   
@@ -89,7 +89,7 @@ class Group extends FOGController
         if ($this->isLoaded('hosts'))
         {
             // Remove all old entries.
-            $this->FOGCore->getClass('GroupAssociationManager')->destroy(array('groupID' => $this->get('id')));
+            $this->getClass('GroupAssociationManager')->destroy(array('groupID' => $this->get('id')));
             // Create new Assocs
             foreach ((array)$this->get('hosts') AS $Host)
             {
@@ -124,12 +124,109 @@ class Group extends FOGController
         return $this;
     }
 
+	public function addImage($imageID)
+	{
+		if (!$imageID)
+			throw new Exception(_('Select an image'));
+		$Image = ($imageID instanceof Image ? $imageID : new Image((int)$imageID));
+		foreach($this->get('hosts') AS $Host)
+		{
+			if ($Host && $Host->isValid())
+			{
+				if ($Host->get('task') && $Host->get('task')->isValid())
+					throw new Exception(_('There is a host in a tasking'));
+				if (!$Image || !$Image->isValid())
+					throw new Exception(_('Image is not valid'));
+				else
+					$Host->set('imageID', $Image->get('id'));
+				$Host->save();
+			}
+		}
+		return $this;
+	}
+
+	public function addSnapin($snapArray)
+	{
+		foreach($this->get('hosts') AS $Host)
+		{
+			if ($Host && $Host->isValid())
+				$Host->addSnapin($snapArray)->save();
+		}
+		return $this;
+	}
+
+	public function removeSnapin($snapArray)
+	{
+		foreach($this->get('hosts') AS $Host)
+		{
+			if ($Host && $Host->isValid())
+				$Host->removeSnapin($snapArray)->save();
+		}
+		return $this;
+	}
+
+	public function setAD($useAD, $domain, $ou, $user, $pass)
+	{
+		foreach($this->get('hosts') AS $Host)
+		{
+			if ($Host && $Host->isValid())
+				$Host->setAD($useAD,$domain,$ou,$user,$pass)->save();
+		}
+		return $this;
+	}
+
+	public function addPrinter($printAdd,$printDel,$level = 0)
+	{
+		foreach($this->get('hosts') AS $Host)
+		{
+			if ($Host && $Host->isValid())
+			{
+				$Host->set('printerLevel',$level)
+					 ->addPrinter($printAdd)
+					 ->removePrinter($printDel)
+					 ->save();
+				if ($default)
+					$Host->updateDefault($default);
+			}
+		}
+		return $this;
+	}
+
+	public function updateDefault($printerid,$onoff)
+	{
+		foreach($this->get('hosts') AS $Host)
+		{
+			if ($Host && $Host->isValid())
+			{
+				foreach($printerid AS $printer)
+				{
+					$Printer = new Printer($printer);
+					if ($Printer && $Printer->isValid())
+					{
+						if ($Printer->get('id') == $onoff)
+							$Host->updateDefault($Printer->get('id'),1);
+						else
+							$Host->updateDefault($Printer->get('id'),0);
+					}
+				}
+			}
+		}
+		return $this;
+	}
+
 	// Custom Variables
-	function doMembersHaveUniformImages()
+	public function doMembersHaveUniformImages()
 	{
 		foreach ($this->get('hosts') AS $Host)
 			$images[] = $Host->get('imageID');
 		$images = array_unique($images);
 		return (count($images) == 1 ? true : false);
+	}
+	public function destroy($field = 'id')
+	{
+		// Remove All Host Associations
+		$this->getClass('GroupAssociationManager')->destroy(array('groupID' => $this->get('id')));
+		// Return
+		return parent::destroy($field);
 	}
 }

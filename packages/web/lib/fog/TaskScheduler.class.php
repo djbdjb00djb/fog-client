@@ -21,10 +21,10 @@ class TaskScheduler extends FOGBase
 	{
 		try
 		{
-			$Tasks = $this->FOGCore->getClass('TaskManager')->find(array('stateID' => 1,'typeID' => array(1,15,17)));
+			$Tasks = $this->getClass('TaskManager')->find(array('stateID' => 1,'typeID' => array(1,15,17)));
 			if ($Tasks)
 			{
-				$this->outall(sprintf(" * %s active task(s) awaiting check-in sending WOL request(s).",$this->FOGCore->getClass('TaskManager')->count(array('stateID' => 1,'typeID' => array(1,15,17)))));
+				$this->outall(sprintf(" * %s active task(s) awaiting check-in sending WOL request(s).",$this->getClass('TaskManager')->count(array('stateID' => 1,'typeID' => array(1,15,17)))));
 				foreach($Tasks AS $Task)
 				{
 					$Host = new Host($Task->get('hostID'));
@@ -35,7 +35,7 @@ class TaskScheduler extends FOGBase
 			}
 			else
 				$this->outall(" * 0 active task(s) awaiting check-in.");
-			$Tasks = $this->FOGCore->getClass('ScheduledTaskManager')->find(array('isActive' => 1));
+			$Tasks = $this->getClass('ScheduledTaskManager')->find(array('isActive' => 1));
 			if ($Tasks)
 			{
 				$this->outall(sprintf(" * %s task(s) found.",count($Tasks)));
@@ -78,7 +78,7 @@ class TaskScheduler extends FOGBase
 								$this->outall(sprintf("\t\t - Group %s",$Group->get('name')));
 								foreach((array)$Group->get('hosts') AS $Host)
 								{
-									$Host->createImagePackage($Task->get('taskType'),$Task->get('name'),$Task->get('shutdown'),false,$deploySnapin,'FOG_SCHED');
+									$Host->createImagePackage($Task->get('taskType'),$Task->get('name'),$Task->get('shutdown'),false,$deploySnapin,true,$Task->get('other3'));
 									$this->outall(sprintf("\t\t - Task Started for host %s!",$Host->get('name')));
 								}
 								if ($Timer->isSingleRun())
@@ -96,7 +96,7 @@ class TaskScheduler extends FOGBase
 						{
 							$this->outall("\t\t - Is a host based task.");
 							$Host = $Task->getHost();
-							$Host->createImagePackage($Task->get('taskType'),$Task->get('name'),$Task->get('shutdown'),false,$deploySnapin,'FOG_SCHED');
+							$Host->createImagePackage($Task->get('taskType'),$Task->get('name'),$Task->get('shutdown'),false,$deploySnapin,false,$Task->get('other3'));
 							$this->outall(sprintf("\t\t - Task Started for host %s!",$Host->get('name')));
 							if ($Timer->isSingleRun())
 							{
@@ -124,7 +124,7 @@ class TaskScheduler extends FOGBase
 
 	public function serviceRun()
 	{
-		$this->FOGCore->out(' ',REPLICATORDEVICEOUTPUT);
+		$this->FOGCore->out(' ',$this->dev);
 		$this->FOGCore->out(' +---------------------------------------------------------',$this->dev);
 		$this->commonOutput();
 		$this->FOGCore->out(' +---------------------------------------------------------',$this->dev);

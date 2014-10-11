@@ -26,7 +26,7 @@ try
 		// If it's filled out and is safe, set that as hostname, otherwise set it as mac.
 		($host != null && strlen($host) > 0 && $HostManager->isSafeHostName($host) ? $realhost = $host : $realhost = $macsimple);
 		// Set the description
-		$desc = _("Created by FOG Reg on")." " . date("F j, Y, g:i a");
+		$desc = _("Created by FOG Reg on")." " . $FOGCore->formatTime('now',"F j, Y, g:i a");
 		// Set ip if filled out.
 		$ip=trim(base64_decode($_REQUEST["ip"]));
 		// Set the image ID, if there is one.
@@ -72,7 +72,6 @@ try
 		$Host = new Host(array(
 			'name' => $realhost,
 			'description' => sprintf('%s %s',_('Created by FOG Reg on'),date('F j, Y, g:i a')),
-			'mac' => $mac,
 			'imageID' => $realimageid,
 			'useAD' => $strDoAD,
 			'ADDomain' => $strADDomain,
@@ -80,16 +79,18 @@ try
 			'ADUser' => $strADUser,
 			'ADPass' => $strADPass,
 			'productKey' => $productKey,
-			'createdTime' => date("Y-m-d H:i:s"),
+			'createdTime' => $FOGCore->formatTime('now',"Y-m-d H:i:s"),
 			'createdBy' => 'FOGREG',
 		));
-		$Host->addModule($ids);
-		$groupid = trim(base64_decode($_REQUEST['groupid']));
-		$Group = ($groupid && is_numeric($groupid) && $groupid > 0 ? new Group($groupid) : new Group(array('id' => 0)));
+		$groupid = explode(',',trim(base64_decode($_REQUEST['groupid'])));
+		$snapinid = explode(',',trim(base64_decode($_REQUEST['snapinid'])));
 		if ($Host->save())
 		{
-			$Host = new Host($Host->get('id'));
-			$Group && $Group->isValid() ? $Host->addGroup((array)$Group->get('id'))->save() : null;
+			$Host->addModule($ids);
+			$Host->addPriMAC($mac);
+			$Host->addGroup($groupid);
+			$Host->addSnapin($snapinid);
+			$Host->save();
 			$LocPlugInst = current($FOGCore->getClass('PluginManager')->find(array('name' => 'location')));
 			if ($LocPlugInst)
 			{
@@ -118,8 +119,8 @@ try
 			else
 				print _('Done!');
 			// If inventory for this host already exists, update the values, otherwise create new inventory record.
-			$Inventory = current($FOGCore->getClass('InventoryManager')->find(array('hostID' => $Host->get('id'))));
-			if ($Inventory)
+			$Inventory = $Host->get('inventory');
+			if ($Inventory && $Inventory->isValid())
 			{
 				$Inventory->set('primaryUser',$primaryuser)
 						  ->set('other1',$other1)
@@ -133,7 +134,7 @@ try
 					'primaryUser' => $primaryuser,
 					'other1' => $other1,
 					'other2' => $other2,
-					'createdTime' => date('Y-m-d H:i:s')
+					'createdTime' => $FOGCore->formatTime('now','Y-m-d H:i:s'),
 				));
 				$Inventory->save();
 			}
@@ -144,8 +145,7 @@ try
 	else
 	{
 		// Get the autoreg group id:
-		$groupid = trim($FOGCore->getSetting('FOG_QUICKREG_GROUP_ASSOC'));
-		$Group = ($groupid && is_numeric($groupid) && $groupid > 0 ? new Group($groupid) : new Group(array('id' => 0)));
+		$groupid = explode(',',trim($FOGCore->getSetting('FOG_QUICKREG_GROUP_ASSOC')));
 		// Quick Registration
 		if ($FOGCore->getSetting('FOG_QUICKREG_AUTOPOP'))
 		{
@@ -177,17 +177,17 @@ try
 				$Host = new Host(array(
 					'name' => $realhost,
 					'description' => sprintf('%s %s',_('Created by FOG Reg on'),date('F j, Y, g:i a')),
-					'mac' => $mac,
 					'imageID' => $realimageid,
-					'createdTime' => date('Y-m-d H:i:s'),
+					'createdTime' => $FOGCore->formatTime('now','Y-m-d H:i:s'),
 					'createdBy' => 'FOGREG'
 				));
-				$Host->addModule($ids);
 			}
 			if ($Host->save())
 			{
-				$Host = new Host($Host->get('id'));
-				$Group && $Group->isValid() ? $Host->addGroup($groupid)->save() : null;
+				$Host->addModule($ids);
+				$Host->addPriMAC($mac);
+				$Host->addGroup($groupid);
+				$Host->save();
 				// If the image is valid and get's the member from the host
 				// create the tasking, otherwise just register!.
 				if ($Image->isValid() && $Host->getImageMemberFromHostID())
@@ -212,13 +212,15 @@ try
 				$Host = new Host(array(
 					'name' => $realhost,
 					'description' => sprintf('%s %s',_('Created by FOG Reg on'),date('F j, Y, g:i a')),
-					'mac' => $mac,
-					'createdTime' => date('Y-m-d H:i:s'),
+					'createdTime' => $FOGCore->formatTime('now','Y-m-d H:i:s'),
 					'createdBy' => 'FOGREG',
 				));
-				$Host->set('modules',$ids);
 				if ($Host->save())
+				{
+					$Host->addModule($ids);
+					$Host->addPriMAC($mac);
 					print _('Done');
+				}
 				else
 					throw new Exception(_('Failed to save new Host!'));
 			}

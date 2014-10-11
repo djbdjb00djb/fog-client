@@ -33,7 +33,7 @@ class Snapin extends FOGController
 		{
 			if ($this->get('id'))
 			{
-				$SnapinAssocs = $this->FOGCore->getClass('SnapinAssociationManager')->find(array('snapinID' => $this->get('id')));
+				$SnapinAssocs = $this->getClass('SnapinAssociationManager')->find(array('snapinID' => $this->get('id')));
 				foreach($SnapinAssocs AS $SnapinAssoc)
 					$this->add('hosts', new Host($SnapinAssoc->get('hostID')));
 			}
@@ -85,7 +85,7 @@ class Snapin extends FOGController
 		if ($this->isLoaded('hosts'))
 		{
 			// Remove all old entries.
-			$this->FOGCore->getClass('SnapinAssociationManager')->destroy(array('snapinID' => $this->get('id')));
+			$this->getClass('SnapinAssociationManager')->destroy(array('snapinID' => $this->get('id')));
 			// Create new Assocs
 			foreach ((array)$this->get('hosts') AS $Host)
 			{
@@ -118,5 +118,17 @@ class Snapin extends FOGController
 		 	$this->remove('hosts', ($remove instanceof Host ? $remove : new Host((int)$remove)));
 		// Return
 		return $this;
+	}
+	public function destroy($field = 'id')
+	{
+		// Remove all associations
+		$this->getClass('SnapinAssociationManager')->destroy(array('snapinID' => $this->get('id')));
+		foreach($this->getClass('SnapinTaskManager')->find(array('snapinID' => $this->get('id'))) AS $SnapJob)
+		{
+			$this->getClass('SnapinJobManager')->destroy(array('jobID' => $SnapJob->get('jobID')));
+			$SnapJob->destroy();
+		}
+		// Return
+		return parent::destroy($field);
 	}
 }

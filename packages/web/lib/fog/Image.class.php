@@ -18,12 +18,14 @@ class Image extends FOGController
 		'building' => 'imageBuilding',
 		'size' => 'imageSize',
 		'imageTypeID' => 'imageTypeID',
+		'imagePartitionTypeID' => 'imagePartitionTypeID',
 		'storageGroupID' => 'imageNFSGroupID',
 		'osID' => 'imageOSID',
 		'size' => 'imageSize', 
 		'deployed' => 'imageLastDeploy',
 		'format' => 'imageFormat',
 		'magnet' => 'imageMagnetUri',
+		'protected' => 'imageProtect',
 	);
 
 	// Additional Fields
@@ -38,7 +40,7 @@ class Image extends FOGController
 		{
 			if ($this->get('id'))
 			{
-				$Hosts = $this->FOGCore->getClass('HostManager')->find(array('imageID' => $this->get('id')));
+				$Hosts = $this->getClass('HostManager')->find(array('imageID' => $this->get('id')));
 				foreach($Hosts AS $Host)
 					$this->add('hosts', $Host);
 			}
@@ -90,7 +92,7 @@ class Image extends FOGController
 		if ($this->isLoaded('hosts'))
 		{
 			// Unset all hosts
-			foreach($this->FOGCore->getClass('HostManager')->find(array('imageID' => $this->get('id'))) AS $Host)
+			foreach($this->getClass('HostManager')->find(array('imageID' => $this->get('id'))) AS $Host)
 			{
 				if(($Host instanceof Host) && $Host->isValid())
 					$Host->set('imageID', 0)->save();
@@ -148,28 +150,40 @@ class Image extends FOGController
 	{
 		return new ImageType($this->get('imageTypeID'));
 	}
+	/** getImagePartitionType()
+		Gets the relevant ImagePartitionType class object for the image.
+	*/
+	public function getImagePartitionType()
+	{
+		return new ImagePartitionType($this->get('imagePartitionTypeID'));
+	}
 	/** deleteImageFile()
 		This function just deletes the image file via FTP.
 		Only used if the user checks the Add File? checkbox.
 	*/
 	public function deleteImageFile()
 	{
-		$ftp = $GLOBALS['FOGFTP'];
+		if ($this->get('protected'))
+			throw new Exception($this->foglang['ProtectedImage']);
+		$ftp = $this->FOGFTP;
 		$SN = $this->getStorageGroup()->getMasterStorageNode();
 		$SNME = ($SN && $SN->get('isEnabled') == '1' ? true : false);
-		if ($SNME)
-		{
-			$ftphost = $SN->get('ip');
-			$ftpuser = $SN->get('user');
-			$ftppass = $SN->get('pass');
-			$ftproot = rtrim($SN->get('path'),'/').'/'.$this->get('path');
-		}
+		if (!$SNME)
+			throw new Exception($this->foglang['NoMasterNode']);
+		$ftphost = $SN->get('ip');
+		$ftpuser = $SN->get('user');
+		$ftppass = $SN->get('pass');
+		$ftproot = rtrim($SN->get('path'),'/').'/'.$this->get('path');
 		$ftp->set('host',$ftphost)
 			->set('username',$ftpuser)
 			->set('password',$ftppass)
 			->connect();
 		if(!$ftp->delete($ftproot))
-			return false;
-		return true;
+			throw new Exception($this->foglang['FailedDeleteImage']);
 	}
 }
+/* Local Variables: */
+/* indent-tabs-mode: t */
+/* c-basic-offset: 4 */
+/* tab-width: 4 */
+/* End: */

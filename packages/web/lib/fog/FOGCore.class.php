@@ -25,16 +25,6 @@ class FOGCore extends FOGBase
 		return null;
 	}
 
-	/** cleanOldUnrunScheduledTasks()
-		Cleans out old scheduled delayed tasks.
-	*/
-	private function cleanOldUnrunScheduledTasks()
-	{
-		$ScheduledTasks = $this->getClass('ScheduledTaskManager')->find(array('type' => 'S', 'scheduleTime' => strtotime(180)),'AND');
-		foreach($ScheduledTasks AS $ScheduledTask)
-			$ScheduledTask->set('isActive', 0)->save();
-	}
-	
 	/** stopScheduledTask($task)
 		Stops the scheduled task.
 	*/
@@ -96,24 +86,10 @@ class FOGCore extends FOGBase
 		$History = new History(array(
 			'info' => $string,
 			'createdBy' => $uname,
-			'createdTime' => date('Y-m-d H:i:s'),
+			'createdTime' => $this->nice_date()->format('Y-m-d H:i:s'),
 			'ip' => $_SERVER[REMOTE_ADDR],
 		));
 		$History->save();
-	}
-	
-	/** searchManager($manager = 'Host', $keyword = '*')
-		Searchs items using the Manager of the associated class.  If nothing is chosen searches all hosts.
-	*/
-	public function searchManager($manager = 'Host', $keyword = '*')
-	{
-		$manager = ucwords(strtolower($manager)) . 'Manager';
-		
-		//$Manager = new $manager();
-		// TODO: Replace this when all Manager classes no longer need the database connection passed
-		$Manager = new $manager( $GLOBALS['conn'] );
-		
-		return $Manager->search($keyword);
 	}
 	
 	/** getSetting($key)
@@ -155,7 +131,7 @@ class FOGCore extends FOGBase
 	public function getMACManufacturer($macprefix)
 	{
 		$OUI = current($this->getClass('OUIManager')->find(array('prefix' => $macprefix)));
-		return ($OUI && $OUI->isValid() ? $OUI->get('name') : _('n/a'));
+		return ($OUI && $OUI->isValid() ? $OUI->get('name') : $this->foglang['n/a']);
 	}
 	
 	/** addUpdateMACLookupTable($macprefix,$strMan)
@@ -186,9 +162,8 @@ class FOGCore extends FOGBase
 	*/
 	public function clearMACLookupTable()
 	{
-		if ($this->getClass('OUIManager')->destroy())
-			return true;
-		return false;
+		$this->DB->query("TRUNCATE TABLE ".OUI::databaseTable);
+		return (!$this->DB->fetch()->get());
 	}
 	
 	/** getMACLookupCount()
@@ -275,34 +250,9 @@ class FOGCore extends FOGBase
 	public function wakeOnLAN($mac)
 	{
 		// HTTP request to WOL script
-		$this->fetchURL(sprintf('http://%s%s?wakeonlan=%s', $this->getSetting('FOG_WOL_HOST'), $this->getSetting('FOG_WOL_PATH'), ($mac instanceof MACAddress ? $mac->getMACWithColon() : $mac)));
+		$this->fetchURL(sprintf('http://%s%s?wakeonlan=%s', $this->getSetting('FOG_WOL_HOST'), $this->getSetting('FOG_WOL_PATH'), ($mac instanceof MACAddress ? $mac->__toString() : $mac)));
 	}
 	
-	/** formatTime($time, $format = '')
-		format's time information.  If format is blank,
-		formats based on current date to date sent.  Otherwise
-		returns the information back based on the format requested.
-	*/
-	public function formatTime($time, $format = '')
-	{
-		// Convert to unix date if not already
-		if (!is_numeric($time))
-			$time = strtotime($time);
-		// Forced format
-		if ($format)
-			return date($format, $time);
-		// Today
-		if (date('d-m-Y', $time) == date('d-m-Y'))
-			return 'Today, ' . date('g:ia', $time);
-		// Yesterday
-		elseif (date('d-m-Y', $time) == date('d-m-Y', strtotime('-1 day')))
-			return 'Yesterday, ' . date('g:i a', $time);
-		// Short date
-		elseif (date('m-Y', $time) == date('m-Y'))
-			return date('jS, g:ia', $time);
-		// Long date
-		return date('m-d-Y g:ia', $time);
-	}
 	
 	// Blackout - 2:40 PM 25/05/2011
 	/** SystemUptime()
@@ -322,6 +272,37 @@ class FOGCore extends FOGBase
 		
 		return array('uptime' => $uptime, 'load' => $load);
 	}
+	/** clear_screen($outputdevice)
+		Clears the screen for information.
+	*/
+	public function clear_screen($outputdevice)
+	{
+		$this->out(chr(27)."[2J".chr(27)."[;H",$outputdevice);
+	}
+	/** wait_interface_ready($interface,$outputdevice)
+		Waits for the network interface to be ready so services operate.
+	*/
+	public function wait_interface_ready($interface,$outputdevice)
+	{
+		while (true)
+		{
+			$retarr = array();
+			exec('netstat -inN',$retarr);
+			array_shift($retarr);
+			array_shift($retarr);
+			foreach($retarr AS $line)
+			{
+				$t = substr($line,0,strpos($line,' '));
+				if ($t == $interface)
+				{
+					$this->out('Interface now ready..',$outputdevice);
+					break 2;
+				}
+			}
+			$this->out('Interface not ready, waiting..',$outputdevice);
+			sleep(10);
+		}
+	}
 	// The below functions are from the FOG Service Scripts Data writing and checking.
 	/** out($sting, $device, $blLog=false,$blNewLine=true)
 		prints the information to the service log files.
@@ -338,7 +319,7 @@ class FOGCore extends FOGBase
 	*/
 	public function getDateTime()
 	{
-		return date('m-d-y g:i:s a');
+		return $this->nice_date()->format('m-d-y g:i:s a');
 	}
 	/** wlog($string, $path)
 		Writes to the log file and clears if needed.
@@ -382,7 +363,7 @@ class FOGCore extends FOGBase
 	/** getBanner()
 		Prints the FOG banner
 	*/
-	function getBanner()
+	public function getBanner()
 	{
 		$str  = "        ___           ___           ___      \n";
 		$str .= "       /\  \         /\  \         /\  \     \n";
@@ -408,5 +389,123 @@ class FOGCore extends FOGBase
 		$str .= "  ###########################################\n";
 		$str .= "\n";
 		return $str;
-	}	
+	}
+
+	/** hex2bin($hex)
+	* @param $hex
+	* Function simple takes the data and transforms it into hexadecimal.
+	* @return the hex coded data.
+	*/
+	public function hex2bin($hex)
+	{
+		$n = strlen($hex);
+		$i = 0;
+		while ($i<$n)
+		{
+			$a = substr($hexstr,$i,2);
+			$c = pack("H*",$a);
+			if ($i == 0)
+				$sbin = $c;
+			else
+				$sbin .= $c;
+			$i += 2;
+		}
+		return $sbin;
+	}
+	/** getHWInfo()
+	* Returns the hardware information for hwinfo link on dashboard.
+	* @return $data
+	*/
+	public function getHWInfo()
+	{
+		$data['general'] = '@@general';
+		$data['kernel'] = trim(shell_exec('uname -r').substr("\n",0,-2));
+		$data['hostname'] = trim(shell_exec('hostname'));
+		$data['uptimeload'] = trim(shell_exec('uptime'));
+		$data['cputype'] = trim(shell_exec("cat /proc/cpuinfo | head -n2 | tail -n1 | cut -f2 -d: | sed 's| ||'"));
+		$data['cpucount'] = trim(shell_exec("grep '^processor' /proc/cpuinfo | tail -n 1 | awk '{print \$3+1}'"));
+		$data['cpumodel'] = trim(shell_exec("cat /proc/cpuinfo | head -n5 | tail -n1 | cut -f2 -d: | sed 's| ||'"));
+		$data['cpuspeed'] = trim(shell_exec("cat /proc/cpuinfo | head -n8 | tail -n1 | cut -f2 -d: | sed 's| ||'"));
+		$data['cpucache'] = trim(shell_exec("cat /proc/cpuinfo | head -n9 | tail -n1 | cut -f2 -d: | sed 's| ||'"));
+		$data['totmem'] = $this->formatByteSize(trim(shell_exec("free -m | head -n2 | tail -n1 | awk '{ print \$2 }'"))*1024*1024);
+		$data['usedmem'] = $this->formatByteSize(trim(shell_exec("free -m | head -n3 | tail -n1 | awk '{ print \$3 }'"))*1024*1024);
+		$data['freemem'] = $this->formatByteSize(trim(shell_exec("free -m | head -n3 | tail -n1 | awk '{ print \$4 }'"))*1024*1024);
+		$data['filesys'] = '@@fs';
+		$t = shell_exec('df | grep -vE "^Filesystem|shm"');
+		$l = explode("\n",$t);
+		foreach ($l AS $n)
+		{
+			if (preg_match("/(\d+) +(\d+) +(\d+) +\d+%/",$n,$matches))
+			{
+				if (is_numeric($matches[1]))
+					$hdtotal += $matches[1]*1024;
+				if (is_numeric($matches[2]))
+					$hdused += $matches[2]*1024;
+			}
+		}
+		$data['totalspace'] = $this->formatByteSize($hdtotal);
+		$data['usedspace'] = $this->formatByteSize($hdused);
+		$data['nic'] = '@@nic';
+		$NET = shell_exec('cat "/proc/net/dev"');
+		$lines = explode("\n",$NET);
+		foreach ($lines AS $line)
+		{
+			if (preg_match('/:/',$line))
+			{
+				list($dev_name,$stats_list) = preg_split('/:/',$line,2);
+				$stats = preg_split('/\s+/', trim($stats_list));
+				$data[$dev_name] = trim($dev_name).'$$'.$stats[0].'$$'.$stats[8].'$$'.($stats[2]+$stats[10]).'$$'.($stats[3]+$stats[11]);
+			}
+		}
+		$data['end'] = '@@end';
+		return $data;
+	}
+	/**
+	* track($list, $c = 0, $i = 0)
+	* @param $list the data to bencode.
+	* @param $c completed jobs (seeders)
+	* @param $i incompleted jobs (leechers)
+	* @return void
+	* Will "return" but through throw/catch statement.
+	*/
+	public function track($list, $c = 0, $i = 0)
+	{
+		if (is_string($list))
+			return 'd14:failure reason'.strlen($list).':'.$list.'e';
+		$p = '';
+		foreach((array)$list AS $d)
+		{
+			$peer_id = '';
+			if (!$_REQUEST['no_peer_id'])
+				$peer_id = '7:peer id'.strlen($this->hex2bin($d[2])).':'.$this->hex2bin($d[2]);
+			$p .= 'd2:ip'.strlen($d[0]).':'.$d[0].$peer_id.'4:porti'.$d[1].'ee';
+		}
+		return 'd8:intervali'.$this->getSetting('FOG_TORRENT_INTERVAL').'e12:min intervali'.$this->getSetting('FOG_TORRENT_INTERVAL_MIN').'e8:completei'.$c.'e10:incompletei'.$i.'e5:peersl'.$p.'ee';
+	}
+	/**
+	* valdata($g,$fixed_size=false)
+	* Function simply checks if the required data is met and valid
+	* Could use for other functions possibly too.
+	* @param $g the request/get/post info to validate.
+	* @return void
+	* Sends info back to track.
+	*/
+	public function valdata($g,$fixed_size=false)
+	{
+		try
+		{
+			if (!$_REQUEST[$g])
+				throw new Exception($this->track('Invalid request, missing data'));
+			if (!is_string($_REQUEST[$g]))
+				throw new Exception($this->track('Invalid request, unkown data type'));
+			if ($fixed_size && strlen($_REQUEST[$g]) != 20)
+				throw new Exception($this->track('Invalid request, length on fixed argument not correct'));
+			if (strlen($_REQUEST[$g]) > 80)
+				throw new Exception($this->track('Request too long'));
+		}
+		catch (Exception $e)
+		{
+			die($e->getMessage());
+		}
+	}
 }

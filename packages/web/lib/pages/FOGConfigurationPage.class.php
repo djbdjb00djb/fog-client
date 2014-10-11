@@ -127,7 +127,7 @@ class FOGConfigurationPage extends FOGPage
 		else if ( $_REQUEST["install"] == "1"  )
 		{
 			$_SESSION["allow_ajax_kdl"] = true;
-			$_SESSION["dest-kernel-file"] = trim($_POST["dstName"]);
+			$_SESSION["dest-kernel-file"] = trim($_REQUEST["dstName"]);
 			$_SESSION["tmp-kernel-file"] = rtrim(sys_get_temp_dir(), '/') . '/' . basename( $_SESSION["dest-kernel-file"] );
 			$_SESSION["dl-kernel-file"] = base64_decode($_REQUEST["file"]);
 			if (file_exists($_SESSION["tmp-kernel-file"]))
@@ -190,7 +190,7 @@ class FOGConfigurationPage extends FOGPage
 				'field' => $field,
 				'input' => $input,
 				'checked' => ($this->FOGCore->getSetting('FOG_PXE_MENU_HIDDEN') ? 'checked="checked"' : ''),
-				'boot_keys' => $this->FOGCore->getClass('KeySequenceManager')->buildSelectBox($this->FOGCore->getSetting('FOG_KEY_SEQUENCE')),
+				'boot_keys' => $this->getClass('KeySequenceManager')->buildSelectBox($this->FOGCore->getSetting('FOG_KEY_SEQUENCE')),
 				'timeout' => $this->FOGCore->getSetting('FOG_PXE_MENU_TIMEOUT'),
 				'adv' => $this->FOGCore->getSetting('FOG_PXE_ADVANCED'),
 				'advmenulogin' => $this->FOGCore->getSetting('FOG_ADVANCED_MENU_LOGIN'),
@@ -212,12 +212,12 @@ class FOGConfigurationPage extends FOGPage
 	{
 		try
 		{
-			$timeout = trim($_POST['timeout']);
+			$timeout = trim($_REQUEST['timeout']);
 			$timeout = (!empty($timeout) && is_numeric($timeout) && $timeout >= 0 ? true : false);
 			if (!$timeout)
 				throw new Exception(_("Invalid Timeout Value."));
 			else
-				$timeout = trim($_POST['timeout']);
+				$timeout = trim($_REQUEST['timeout']);
 			if ($this->FOGCore->setSetting('FOG_PXE_MENU_HIDDEN',$_REQUEST['hidemenu']) && $this->FOGCore->setSetting('FOG_PXE_MENU_TIMEOUT',$timeout) && $this->FOGCore->setSetting('FOG_PXE_ADVANCED',$_REQUEST['adv']) && $this->FOGCore->setSetting('FOG_KEY_SEQUENCE',$_REQUEST['keysequence']) && $this->FOGCore->setSetting('FOG_NO_MENU',$_REQUEST['nomenu']) && $this->FOGCore->setSetting('FOG_BOOT_EXIT_TYPE',$_REQUEST['bootTypeExit']) && $this->FOGCore->setSetting('FOG_ADVANCED_MENU_LOGIN',$_REQUEST['advmenulogin']))
 				throw new Exception("PXE Menu has been updated!");
 			else
@@ -228,6 +228,168 @@ class FOGConfigurationPage extends FOGPage
 			$this->FOGCore->setMessage($e->getMessage());
 			$this->FOGCore->redirect($this->formAction);
 		}
+	}
+	public function customize_edit()
+	{
+		$this->title = $this->foglang['PXEMenuCustomization'];
+		print "\n\t\t\t<p>"._('This item allows you to edit all of the PXE Menu items as you see fit.  Mind you, iPXE syntax is very finicky when it comes to edits.  If you need help understanding what items are needed, please see the forums.  You can also look at ipxe.org for syntactic usage and methods.  Some of the items here are bound to limitations.  Documentation will follow when enough time is provided.').'</p>';
+		print "\n\t\t\t\t".'<div id="tab-container-1">';
+		$this->templates = array(
+			'${field}',
+			'${input}',
+		);
+		foreach($this->getClass('PXEMenuOptionsManager')->find('','','id') AS $Menu)
+		{
+			$divTab = preg_replace('/[[:space:]]/','_',preg_replace('/\./','_',preg_replace('/:/','_',$Menu->get('name'))));
+			print "\n\t\t\t\t\t\t".'<a id="'.$divTab.'" style="text-decoration:none;" href="#'.$divTab.'"><h3>'.$Menu->get('name').'</h3></a>';
+			print "\n\t\t\t".'<div id="'.$divTab.'">';
+			print "\n\t\t\t\t".'<form method="post" action="'.$this->formAction.'">';
+			$menuid = in_array($Menu->get('id'),array(1,2,3,4,5,6,7,8,9,10,11,12,13));
+			$fields = array(
+				_('Menu Item:') => '<input type="text" name="menu_item" value="${menu_item}" id="menu_item" ${disabled}/>',
+				_('Description:') => '<textarea cols="40" rows="2" name="menu_description" ${disabled}>${menu_description}</textarea>',
+				_('Parameters:') => '<textarea cols="40" rows="8" name="menu_params"${disabled}>${menu_params}</textarea>',
+				_('Boot Options:') => '<input type="text" name="menu_options" id="menu_options" value="${menu_options}" ${disabled}/>',
+				_('Default Item:') => '<input type="checkbox" name="menu_default" value="1" ${menu_default}/>',
+				_('Menu Show with:') => '${menu_regmenu}',
+				'<input type="hidden" name="menu_id" value="${menu_id}" />' => '<input type="submit" value="'.$this->foglang['Submit'].'" />',
+			);
+			foreach($fields AS $field => $input)
+			{
+				$this->data[] = array(
+					'field' => $field,
+					'input' => $input,
+					'menu_id' => $Menu->get('id'),
+					'menu_item' => $Menu->get('name'),
+					'menu_description' => $Menu->get('description'),
+					'menu_params' => $Menu->get('params'),
+					'menu_default' => ($Menu->get('default') ? 'checked="checked"' : ''),
+					'menu_regmenu' => $this->getClass('PXEMenuOptionsManager')->regSelect($Menu->get('regMenu')),
+					'menu_options' => $Menu->get('args'),
+					'disabled' => $menuid ? 'disabled="disabled"' : '',
+				);
+			}
+			array_push($this->HookManager->events,'BOOT_ITEMS_'.$divTab);
+			// Hook
+			$this->HookManager->processEvent('BOOT_ITEMS_'.$divTab, array('data' => &$this->data, 'templates' => &$this->templates, 'attributes' => &$this->attributes, 'headerData' => &$this->headerData));
+			// Output
+			$this->render();
+			print "</form>";
+			if (!$menuid)
+			{
+				print "\n\t\t\t".'<form method="post" action="'.$this->formAction.'">';
+				print "\n\t\t\t".'<input type="hidden" name="rmid" value="'.$Menu->get('id').'" /><input type="submit" value="'.$this->foglang['Delete'].' '.$Menu->get('name').' Menu Entry" />';
+				print "\n\t\t\t".'</form>';
+			}
+			print "\n\t\t\t".'</div>';
+			// Reset for use again.
+			unset($this->data);
+		}
+		print "\n\t\t\t\t".'</div>';
+	}
+	public function customize_edit_post()
+	{
+		if ($_REQUEST['menu_id'])
+		{
+			$Menu = new PXEMenuOptions($_REQUEST['menu_id']);
+			$Menu->set('name',$_REQUEST['menu_item'])
+				 ->set('description',$_REQUEST['menu_description'])
+				 ->set('params',$_REQUEST['menu_params'])
+				 ->set('regMenu',$_REQUEST['menu_regmenu'])
+				 ->set('args',$_REQUEST['menu_options']);
+			// Set all other menus that are default to non-default value.
+			foreach($this->getClass('PXEMenuOptionsManager')->find('','','id') AS $MenusRemoveDefault)
+				$MenusRemoveDefault->set('default',0)->save();
+			$Menu->set('default',$_REQUEST['menu_default']);
+			if ($Menu->save())
+				$this->FOGCore->setMessage($Menu->get('name').' '._('successfully updated').'!');
+			// Ensure there's only one default value.
+			$countDefault = $this->getClass('PXEMenuOptionsManager')->count(array('default' => 1));
+			// If there's no defaults, set the first id (local disk) to default.
+			if ($countDefault == 0 || $countDefault > 1)
+				$this->getClass('PXEMenuOptions',1)->set('default',1)->save();
+		}
+		if ($_REQUEST['rmid'])
+		{
+			$Menu = new PXEMenuOptions($_REQUEST['rmid']);
+			$menuname = $Menu->get('name');
+			if($Menu->destroy())
+				$this->FOGCore->setMessage($menuname.' '._('successfully removed').'!');
+			$countDefault = $this->getClass('PXEMenuOptionsManager')->count(array('default' => 1));
+			// If the one removed was the default, it's now gone, reset.
+			if ($countDefault == 0 || $countDefault > 1)
+				$this->getClass('PXEMenuOptions',1)->set('default',1)->save();
+		}
+		$this->FOGCore->redirect($this->formAction);
+	}
+	public function new_menu()
+	{
+		$this->title = _('Create New iPXE Menu Entry');
+		$this->templates = array(
+			'${field}',
+			'${input}',
+		);
+		print "\n\t\t\t\t".'<form method="post" action="'.$this->formAction.'">';
+		$fields = array(
+			_('Menu Item:') => '<input type="text" name="menu_item" value="${menu_item}" id="menu_item" />',
+			_('Description:') => '<textarea cols="40" rows="2" name="menu_description">${menu_description}</textarea>',
+			_('Parameters:') => '<textarea cols="40" rows="8" name="menu_params">${menu_params}</textarea>',
+			_('Boot Options:') => '<input type="text" name="menu_options" id="menu_options" value="${menu_options}" />',
+			_('Default Item:') => '<input type="checkbox" name="menu_default" value="1" ${menu_default}/>',
+			_('Menu Show with:') => '${menu_regmenu}',
+			'&nbsp;' => '<input type="submit" value="'.$this->foglang['Add'].' New Menu" />',
+		);
+		foreach($fields AS $field => $input)
+		{
+			$this->data[] = array(
+				'field' => $field,
+				'input' => $input,
+				'menu_item' => $_REQUEST['menu_item'],
+				'menu_description' => $_REQUEST['menu_description'],
+				'menu_params' => $_REQUEST['menu_params'],
+				'menu_default' => $_REQUEST['menu_default'] ? 'checked="checked"' : '',
+				'menu_regmenu' => $this->getClass('PXEMenuOptionsManager')->regSelect($_REQUEST['menu_regmenu']),
+				'menu_options' => $_REQUEST['menu_options'],
+			);
+		}
+		// Hook
+		$this->HookManager->processEvent('BOOT_ITEMS_ADD', array('data' => &$this->data, 'templates' => &$this->templates, 'attributes' => &$this->attributes, 'headerData' => &$this->headerData));
+		// Output
+		$this->render();
+		print "</form>";
+	}
+	public function new_menu_post()
+	{
+		try
+		{
+			// Error checking
+			// At the least, you should have an item and a description.
+			if (!$_REQUEST['menu_item'])
+				throw new Exception(_('Menu Item or title cannot be blank'));
+			if (!$_REQUEST['menu_description'])
+				throw new Exception(_('A description needs to be set'));
+			$Menu = new PXEMenuOptions(array(
+				'name' => $_REQUEST['menu_item'],
+				'description' => $_REQUEST['menu_description'],
+				'params' => $_REQUEST['menu_params'],
+				'regMenu' => $_REQUEST['menu_regmenu'],
+				'args' => $_REQUEST['menu_options'],
+			));
+			if ($Menu->save())
+				$this->FOGCore->setMessage($Menu->get('name').' '._('successfully added, you may now add another'));
+			// Set all other menus that are default to non-default value.
+			if ($_REQUEST['menu_default'])
+			{
+				foreach($this->getClass('PXEMenuOptionsManager')->find('','','id') AS $MenusRemoveDefault)
+					$MenusRemoveDefault->set('default',0)->save();
+				$Menu->set('default',1)->save();
+			}
+		}
+		catch (Exception $e)
+		{
+			$this->FOGCore->setMessage($e->getMessage());
+		}
+		$this->FOGCore->redirect($this->formAction);
 	}
 	// Client Updater
 	/** client_updater()
@@ -261,7 +423,7 @@ class FOGConfigurationPage extends FOGPage
 		print "\n\t\t\t".'<div class="hostgroup">';
 		print _("This section allows you to update the modules and config files that run on the client computers.  The clients will checkin with the server from time to time to see if a new module is published.  If a new module is published the client will download the module and use it on the next time the service is started.");
 		print "\n\t\t\t</div>";
-		$ClientUpdates = $this->FOGCore->getClass('ClientUpdaterManager')->find('','name');
+		$ClientUpdates = $this->getClass('ClientUpdaterManager')->find('','name');
 		foreach ((array)$ClientUpdates AS $ClientUpdate)
 		{
 			$this->data[] = array(
@@ -314,7 +476,7 @@ class FOGConfigurationPage extends FOGPage
 	*/
 	public function client_updater_post()
 	{
-		$Service = current($this->FOGCore->getClass('ServiceManager')->find(array('name' => $_REQUEST['name'])));
+		$Service = current($this->getClass('ServiceManager')->find(array('name' => $_REQUEST['name'])));
 		if ($_REQUEST['en'])
 			$Service && $Service->isValid() ? $Service->set('value',$_REQUEST['en'])->save() : null;
 		if ($_REQUEST['delcu'])
@@ -329,7 +491,7 @@ class FOGConfigurationPage extends FOGPage
 			{
 				if (file_exists($_FILES['module']['tmp_name'][$index]))
 				{
-					$ClientUpdater = current($this->FOGCore->getClass('ClientUpdaterManager')->find(array('name' => $_FILES['module']['name'][$index])));
+					$ClientUpdater = current($this->getClass('ClientUpdaterManager')->find(array('name' => $_FILES['module']['name'][$index])));
 					if(file_get_contents($_FILES['module']['tmp_name'][$index]))
 					{
 						if ($ClientUpdater)
@@ -385,7 +547,7 @@ class FOGConfigurationPage extends FOGPage
 	*/
 	public function mac_list_post()
 	{
-		if ( $_GET["update"] == "1" )
+		if ( $_REQUEST["update"] == "1" )
 		{
 			$f = "./other/oui.txt";
 			exec('rm -rf '.BASEPATH.'/management/other/oui.txt');
@@ -423,7 +585,7 @@ class FOGConfigurationPage extends FOGPage
 			else
 				print (_("Unable to locate file: $f"));
 		}
-		else if ($_GET["clear"] == "1")
+		else if ($_REQUEST["clear"] == "1")
 			$this->FOGCore->clearMACLookupTable();
 	}
 	// FOG System Settings
@@ -469,6 +631,9 @@ class FOGConfigurationPage extends FOGPage
 			'FOG_MINING_FULL_RUN_ON_WEEKEND',
 			'FOG_ALWAYS_LOGGED_IN',
 			'FOG_ADVANCED_MENU_LOGIN',
+			'FOG_TASK_FORCE_REBOOT',
+			'FOG_NEW_CLIENT',
+			'FOG_AES_ENCRYPT',
 		);
 		// Set title
 		$this->title = _("FOG System Settings");
@@ -489,14 +654,14 @@ class FOGConfigurationPage extends FOGPage
 			'${input_type}',
 			'${span}',
 		);
-		$ServiceCats = $this->FOGCore->getClass('ServiceManager')->getSettingCats();
+		$ServiceCats = $this->getClass('ServiceManager')->getSettingCats();
 		foreach ((array)$ServiceCats AS $ServiceCAT)
 		{
 			
 			$divTab = preg_replace('/[[:space:]]/','_',preg_replace('/:/','_',$ServiceCAT));
 			print "\n\t\t\t\t\t\t".'<a id="'.$divTab.'" style="text-decoration:none;" href="#'.$divTab.'"><h3>'.$ServiceCAT.'</h3></a>';
 			print "\n\t\t\t".'<div id="'.$divTab.'">';
-			$ServMan = $this->FOGCore->getClass('ServiceManager')->find(array('category' => $ServiceCAT),'AND','id');
+			$ServMan = $this->getClass('ServiceManager')->find(array('category' => $ServiceCAT),'AND','id');
 			foreach ((array)$ServMan AS $Service)
 			{
 				if ($Service->get('name') == 'FOG_PIGZ_COMP')
@@ -506,7 +671,15 @@ class FOGConfigurationPage extends FOGPage
 				else if ($Service->get('name') == 'FOG_REGENERATE_TIMEOUT')
 					$type = '<div id="regen" style="width: 200px; top: 15px;"></div><input type="text" readonly="true" name="${service_id}" id="showValRegen" maxsize="5" style="width: 25px; top: -5px; left:225px; position: relative;" value="${service_value}" />';
 				else if (preg_match('#(pass|PASS)#i',$Service->get('name')) && !preg_match('#(VALID|MIN)#i',$Service->get('name')))
-					$type = '<input type="password" name="${service_id}" value="${service_value}" autocomplete="off" />';
+				{
+					if ($Service->get('name') == 'FOG_AES_PASS_ENCRYPT_KEY' || $Service->get('name') == 'FOG_AES_ADPASS_ENCRYPT_KEY')
+					{
+						$type = '<input id="'.$Service->get('name').'_text" type="password" name="${service_id}" value="${service_value}" autocomplete="off" readonly="true" maxlength="50" />';
+						$type .= '<br/><small><input type="button" value="Randomize Above Key" id="'.$Service->get('name').'_button" title="You will have to recompile the client if you change this key.'.($Service->get('name') == 'FOG_AES_ADPASS_ENCRYPT_KEY' ? ' You will also o need to reset the password for all hosts and the FOG_AD_DEFAULT_PASSWORD field.' : '').'" /></small>';
+					}
+					else
+						$type = '<input type="password" name="${service_id}" value="${service_value}" autocomplete="off" />';
+				}
 				else if ($Service->get('name') == 'FOG_VIEW_DEFAULT_SCREEN')
 				{
 					foreach(array('SEARCH','LIST') AS $viewop)
@@ -530,11 +703,11 @@ class FOGConfigurationPage extends FOGPage
 					$type = "\n\t\t\t".'<select name="${service_id}" autocomplete="off" style="width: 220px">'."\n\t\t\t\t".implode("\n",$options2)."\n\t\t\t".'</select>';
 				}
 				else if ($Service->get('name') == 'FOG_QUICKREG_IMG_ID')
-					$type = $this->FOGCore->getClass('ImageManager')->buildSelectBox($this->FOGCore->getSetting('FOG_QUICKREG_IMG_ID'),$Service->get('id'));
+					$type = $this->getClass('ImageManager')->buildSelectBox($this->FOGCore->getSetting('FOG_QUICKREG_IMG_ID'),$Service->get('id'));
 				else if ($Service->get('name') == 'FOG_QUICKREG_GROUP_ASSOC')
-					$type = $this->FOGCore->getClass('GroupManager')->buildSelectBox($this->FOGCore->getSetting('FOG_QUICKREG_GROUP_ASSOC'),$Service->get('id'));
+					$type = $this->getClass('GroupManager')->buildSelectBox($this->FOGCore->getSetting('FOG_QUICKREG_GROUP_ASSOC'),$Service->get('id'));
 				else if ($Service->get('name') == 'FOG_KEY_SEQUENCE')
-					$type = $this->FOGCore->getClass('KeySequenceManager')->buildSelectBox($this->FOGCore->getSetting('FOG_KEY_SEQUENCE'),$Service->get('id'));
+					$type = $this->getClass('KeySequenceManager')->buildSelectBox($this->FOGCore->getSetting('FOG_KEY_SEQUENCE'),$Service->get('id'));
 				else if ($Service->get('name') == 'FOG_QUICKREG_OS_ID')
 				{
 					if ($this->FOGCore->getSetting('FOG_QUICKREG_IMG_ID') > 0)
@@ -573,7 +746,7 @@ class FOGConfigurationPage extends FOGPage
 	*/
 	public function settings_post()
 	{
-		$ServiceMan = $this->FOGCore->getClass('ServiceManager')->find();
+		$ServiceMan = $this->getClass('ServiceManager')->find();
 		foreach ((array)$ServiceMan AS $Service)
 			$key[] = $Service->get('id');
 		foreach ((array)$key AS $key)
@@ -583,6 +756,20 @@ class FOGConfigurationPage extends FOGPage
 				$Service->set('value',-1)->save();
 			else if ($Service->get('name') == 'FOG_USER_VALIDPASSCHARS')
 				$Service->set('value',addslashes($_REQUEST[$key]))->save();
+			else if ($this->FOGCore->getSetting('FOG_NEW_CLIENT') && $Service->get('name') == 'FOG_AD_DEFAULT_PASSWORD')
+			{
+				if ($this->FOGCore->getSetting('FOG_NEW_CLIENT') && $_REQUEST[$key])
+				{
+					$decrypt = $this->FOGCore->aesdecrypt($_REQUEST[$key],$this->FOGCore->getSetting('FOG_AES_ADPASS_ENCRYPT_KEY'));
+					if ($decrypt && mb_detect_encoding($decrypt, 'UTF-8', true))
+						$password = $decrypt;
+					else
+						$password = $_REQUEST[$key];
+				}
+				else
+					$password = $_REQUEST[$key];
+				$Service->set('value',$this->FOGCore->aesencrypt($password,$this->FOGCore->getSetting('FOG_AES_ADPASS_ENCRYPT_KEY')))->save();
+			}
 			else
 				$Service->set('value',$_REQUEST[$key])->save();
 		}
@@ -603,11 +790,11 @@ class FOGConfigurationPage extends FOGPage
 
 		print "\n\t\t\t<p>"._('File:');
 		foreach (array('Multicast','Scheduler','Replicator') AS $value)
-			$options3[] = "\n\t\t\t\t".'<option '.($value == $_POST['logtype'] ? 'selected="selected"' : '').' value="'.$value.'">'.$value.'</option>';
+			$options3[] = "\n\t\t\t\t".'<option '.($value == $_REQUEST['logtype'] ? 'selected="selected"' : '').' value="'.$value.'">'.$value.'</option>';
 		print "\n\t\t\t".'<select name="logtype">'.implode("\n\t\t\t\t",$options3)."\n\t\t\t".'</select>';
 		print "\n\t\t\t"._('Number of lines:');
 		foreach (array(20, 50, 100, 200, 400, 500, 1000) AS $value)
-			$options4[] = '<option '.($value == $_POST['n'] ? 'selected="selected"' : '').' value="'.$value.'">'.$value.'</option>';
+			$options4[] = '<option '.($value == $_REQUEST['n'] ? 'selected="selected"' : '').' value="'.$value.'">'.$value.'</option>';
 		print "\n\t\t\t".'<select name="n">'.implode("\n\t\t\t\t",$options4)."\n\t\t\t".'</select>';
 		print "\n\t\t\t".'<input type="submit" value="'._('Refresh').'" />';
 		print "\n\t\t\t</p>";
@@ -615,16 +802,16 @@ class FOGConfigurationPage extends FOGPage
 		print "\n\t\t\t".'<div class="sub l">';
 		print "\n\t\t\t\t<pre>";
 		$n = 20;
-		if ( $_POST["n"] != null && is_numeric($_POST["n"]) )
-			$n = $_POST["n"];
-		$t = trim($_POST["logtype"]);
-		$logfile = $GLOBALS['FOGCore']->getSetting( "FOG_UTIL_BASE" ) . "/log/multicast.log";
+		if ( $_REQUEST["n"] != null && is_numeric($_REQUEST["n"]) )
+			$n = $_REQUEST["n"];
+		$t = trim($_REQUEST["logtype"]);
+		$logfile = $this->FOGCore->getSetting( "FOG_UTIL_BASE" ) . "/log/multicast.log";
 		if ( $t == "Multicast" )
-			$logfile = $GLOBALS['FOGCore']->getSetting( "FOG_UTIL_BASE" ) . "/log/multicast.log";
+			$logfile = $this->FOGCore->getSetting( "FOG_UTIL_BASE" ) . "/log/multicast.log";
 		else if ( $t == "Scheduler" )
-			$logfile = $GLOBALS['FOGCore']->getSetting( "FOG_UTIL_BASE" ) . "/log/fogscheduler.log";
+			$logfile = $this->FOGCore->getSetting( "FOG_UTIL_BASE" ) . "/log/fogscheduler.log";
 		else if ( $t == "Replicator" )
-			$logfile = $GLOBALS['FOGCore']->getSetting( "FOG_UTIL_BASE" ) . "/log/fogreplicator.log";				
+			$logfile = $this->FOGCore->getSetting( "FOG_UTIL_BASE" ) . "/log/fogreplicator.log";				
 		system("tail -n $n \"$logfile\"");
 		print "\n\t\t\t\t</pre>";
 		print "\n\t\t\t</div>";

@@ -31,7 +31,10 @@ installInitScript()
 	chmod 755 ${initdpath}/${initdIRfullname}
 	sysv-rc-conf ${initdIRfullname} on >/dev/null 2>&1;		
 	chmod 755 ${initdpath}/${initdSDfullname}
-	sysv-rc-conf ${initdSDfullname} on >/dev/null 2>&1;	
+	sysv-rc-conf ${initdSDfullname} on >/dev/null 2>&1;
+	insserv -d ${initdpath}/${initdMCfullname} >/dev/null 2>&1;
+	insserv -d ${initdpath}/${initdIRfullname} >/dev/null 2>&1;
+	insserv -d ${initdpath}/${initdSDfullname} >/dev/null 2>&1;
 	echo "OK";	
 }
 
@@ -81,8 +84,9 @@ configureNFS()
 {
 	echo -n "  * Setting up and starting NFS Server..."; 
 	
-	echo "/images                        *(ro,sync,no_wdelay,insecure_locks,no_root_squash,insecure,fsid=1)
-/images/dev                    *(rw,sync,no_wdelay,no_root_squash,insecure,fsid=2)" > "${nfsconfig}";
+	echo "${storageLocation}                        *(ro,sync,no_wdelay,insecure_locks,no_root_squash,insecure,fsid=1)
+${storageLocation}/dev                    *(rw,sync,no_wdelay,no_root_squash,insecure,fsid=2)
+/opt/fog/clamav							  *(rw,sync,no_wdelay,no_root_squash,insecure,fsid=3)" > "${nfsconfig}";
 	
 	sysv-rc-conf nfs-kernel-server on >/dev/null 2>&1;
 	/etc/init.d/nfs-kernel-server stop >/dev/null 2>&1;
@@ -489,6 +493,12 @@ class Config
 			echo "<?php header('Location: ./fog/index.php');?>" > "/var/www/index.php";
 		fi
 		echo "OK";
+		if [ -d "${webdirdest}.prev" ]; then
+			echo "  * Copying back any custom hook files.";
+			cp -Rf $webdirdest.prev/lib/hooks $webdirdest/lib/;
+			echo "  * Copying back any custom report files.";
+			cp -Rf $webdirdest.prev/management/reports $webdirdest/management/;
+		fi
 	fi
 }
 
@@ -590,22 +600,14 @@ confirmPackageInstallation()
 setupFreshClam()
 {
 	echo  -n "  * Configuring Fresh Clam...";
-
-	if [ ! -d "${freshwebroot}" ]
-	then
-		mkdir "${freshwebroot}"
-		ln -s "${freshdb}" "${freshwebroot}"
-		chown -R ${apacheuser} "${freshwebroot}"
+	if [ ! -d "/opt/fog/clamav" ]; then
+		cp -r ../packages/clamav /opt/fog/
+		chmod -R 777 /opt/fog/clamav
 	fi
-
-	sysv-rc-conf clamav-freshclam on >/dev/null 2>&1;
-	/etc/init.d/clamav-freshclam stop >/dev/null 2>&1;
-	/etc/init.d/clamav-freshclam start >/dev/null 2>&1;
-	if [ "$?" != "0" ]
-	then
-		echo "Failed!";
-		exit 1;	
-	else
+	if [ -d "/opt/fog/clamav" ]; then
 		echo "OK";
+	else
+		echo "Failed!";
+		exit 1;
 	fi
 }

@@ -26,10 +26,10 @@ class HostMobile extends FOGPage
 		parent::__construct($name);
 		// Header Data
 		$this->headerData = array(
-			_('ID'),
-			_('Name'),
-			_('MAC'),
-			_('Image'),
+			$this->foglang['ID'],
+			$this->foglang['Name'],
+			$this->foglang['MAC'],
+			$this->foglang['Image'],
 		);
 		// Attributes
 		$this->attributes = array(
@@ -56,7 +56,7 @@ class HostMobile extends FOGPage
 	{
 		$Host = new Host($_REQUEST['id']);
 		// Title
-		$this->title = _('Quick Image Menu');
+		$this->title = $this->foglang['QuickImageMenu'];
 		unset($this->headerData);
 		$this->attributes = array(
 			array(),
@@ -70,20 +70,20 @@ class HostMobile extends FOGPage
 			if ($Host->createImagePackage('1', "Mobile: ".$ImageMembers->getHost()->get('name'), false, false, true, false, $_SESSION['FOG_USERNAME']))
 			{
 				$this->data[] = array(
-					_('Task Started'),
+					$this->foglang['TaskStarted'],
 				);
 			}
 			else
 			{
 				$this->data[] = array(
-					_('Task Failed'),
+					$this->foglang['FailedTask'],
 				);
 			}
 		}
 		else
 		{
 			$this->data[] = array(
-				_('Error: Is an image associated with the computer?'),
+				$this->foglang['ErrorImageAssoc'],
 			);
 		}
 		$this->render();
@@ -93,7 +93,7 @@ class HostMobile extends FOGPage
 	public function search()
 	{
 		// Set title
-		$this->title = _('Host Search');
+		$this->title = $this->foglang['HostSearch'];
 		// Set search form
 		$this->searchFormURL = sprintf('%s?node=%s&sub=search', $_SERVER['PHP_SELF'], $this->node);
 		// Output
@@ -102,15 +102,21 @@ class HostMobile extends FOGPage
 
 	public function search_post()
 	{
-		$keyword = preg_replace('#%+#', '%', '%' . preg_replace('#[[:space:]]#', '%', $_REQUEST['host-search']) . '%');
-		foreach((array)$this->FOGCore->getClass('HostManager')->search($keyword) AS $Host)
+		// Variables
+		$keyword = preg_replace('#%+#', '%', '%' . preg_replace('#[[:space:]]#', '%', $this->REQUEST['host-search']) . '%');
+		// Get All hosts class for matching keyword
+		$Hosts = new HostManager();
+		foreach($Hosts->search($keyword) AS $Host)
 		{
-			$this->data[] = array(
-				'host_id' => $Host->get('id'),
-				'host_name' => $Host->get('name'),
-				'host_mac' => $Host->get('mac'),
-				'node' => $this->node
-			);
+			if ($Host && $Host->isValid())
+			{
+				$this->data[] = array(
+					'host_id' => $Host->get('id'),
+					'host_name' => $Host->get('name'),
+					'host_mac' => $Host->get('mac'),
+					'node' => $this->node
+				);
+			}
 		}
 		// Ouput
 		$this->render();

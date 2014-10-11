@@ -154,6 +154,7 @@ then
 	echo "         Interface: ${interface}";
 	echo "         Using FOG DHCP: ${bldhcp}";
 	echo "         Internationalization: ${installlang}";
+	echo "         Image Storage Location: ${storageLocation}";
 	echo "         Donate: ${donate}";
 	echo "";
 elif [ "$installtype" = "S" ]
@@ -250,16 +251,21 @@ do
 	           echo "";
 	           echo "  Configuring services.";
 	           echo "";
-	           
+				if [ ! -n "$storageLocation" ]; then
+					echo "";
+					echo -n "     What is the storage location for your images directory? (/images) ";
+					read storageLocation;
+					if [ "$storageLocation" == "" ]; then
+					   	storageLocation="/images";
+					fi
+				fi
 	           if [ "$installtype" = "S" ]
 	           then
 	           	# Storage Node installation
 			        configureUsers;
 			        configureMinHttpd;
 	                configureStorage;
-					if [ "$fogupdateloaded" != "1" ]; then
-	                	configureNFS;
-					fi
+	                configureNFS;
 	                configureFTP;
 			        configureUDPCast;          
 			        installInitScript;
@@ -309,11 +315,8 @@ do
 					read -p "  Press [Enter] key when database is updated/installed.";
 				fi
 			    #restoreReports;
-			    setupFreshClam;
 			    configureStorage;
-				if [ "$fogupdateloaded" != "1" ]; then
-	               	configureNFS;
-				fi
+	            configureNFS;
 			    configureDHCP;
 			    configureTFTPandPXE;
 			    configureFTP;
@@ -322,10 +325,11 @@ do
 			    configureUDPCast;          
 			    installInitScript;
 			    installFOGServices;
-			    configureFOGService;
 			    installUtils;
+			    configureFOGService;
 			    #sendInstallationNotice;
 			    writeUpdateFile;
+			    setupFreshClam;
 			    echo "";
 		
 			    echo "  Setup complete!";

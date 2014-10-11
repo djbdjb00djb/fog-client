@@ -2,12 +2,12 @@
 require('../commons/base.inc.php');
 function getAllBlamedNodes($taskid,$hostid)
 {
-	$NodeFailures = $GLOBALS['FOGCore']->getClass('NodeFailureManager')->find(array('taskID' => $taskid,'hostID' => $hostid));
-	$TimeZone = new DateTimeZone((!ini_get('date.timezone') ? 'GMT' : ini_get('date.timezone')));
-	$DateInterval = new DateTime('-5 minutes',$TimeZone);
+	global $FOGCore;
+	$NodeFailures = $FOGCore->getClass('NodeFailureManager')->find(array('taskID' => $taskid,'hostID' => $hostid));
+	$DateInterval = $FOGCore->nice_date()->modify('-5 minutes');
 	foreach($NodeFailures AS $NodeFailure)
 	{
-		$DateTime = new DateTime($NodeFailure->get('failureTime'),$TimeZone);
+		$DateTime = $FOGCore->nice_date($NodeFailure->get('failureTime'));
 		if ($DateTime->format('Y-m-d H:i:s') >= $DateInterval->format('Y-m-d H:i:s'))
 		{
 			$node = $NodeFailure->get('id');
@@ -21,15 +21,17 @@ function getAllBlamedNodes($taskid,$hostid)
 }
 try
 {
-	// Get the MAC
-	$MACAddress = new MACAddress($_REQUEST['mac']);
-	if (!$MACAddress->isValid()) throw new Exception($foglang['InvalidMAC']);
-	// Get the host
-	$Host = $MACAddress->getHost();
+	// Error checking
+	//MAC Address
+	$HostManager = new HostManager();
+	$MACs = HostManager::parseMacList($_REQUEST['mac']);
+	if (!$MACs) throw new Exception($foglang['InvalidMAC']);
+	// Get the Host
+	$Host = $HostManager->getHostByMacAddresses($MACs);
 	if (!$Host->isValid())
 		throw new Exception(_('Invalid host'));
 	//Get the task
-	$Task = current($Host->get('task'));
+	$Task = $Host->get('task');
 	if (!$Task->isValid())
 		throw new Exception(sprintf('%s: %s (%s)', _('No Active Task found for Host'), $Host->get('name'),$MACAddress));
 	$imagingTasks = in_array($Task->get('typeID'),array(1,2,8,15,16,17));
@@ -54,7 +56,7 @@ try
 				'taskID' => $Task->get('id'),
 				'hostID' => $Host->get('id'),
 				'groupID' => $Task->get('NFSGroupID'),
-				'failureTime' => date('Y-m-d H:i:s'),
+				'failureTime' => $FOGCore->nice_date()->format('Y-m-d H:i:s'),
 			));
 			if ($NodeFailure->save())
 				$Task->set('stateID','1');

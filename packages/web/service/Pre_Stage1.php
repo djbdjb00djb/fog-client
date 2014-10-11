@@ -14,17 +14,12 @@ try
 		throw new Exception( _('Invalid Host') );
 	$Host->getImage()->set('size','0')->save();
 	// Task for Host
-	$Tasks = $Host->get('task');
-	foreach($Tasks AS $Task)
-	{
-		if ($Task->isValid() && !in_array($Task->get('typeID'),array(4,12,13)))
-			break;
-	}
+	$Task = $Host->get('task');
 	if (!$Task->isValid())
 		throw new Exception( sprintf('%s: %s (%s)', _('No Active Task found for Host'), $Host->get('name'), $MACAddress) );
 	// Check-in Host
 	if ($Task->get('stateID') == 1)
-		$Task->set('stateID', '2')->set('checkInTime', time())->save();
+		$Task->set('stateID', '2')->set('checkInTime', $FOGCore->nice_date()->format('Y-m-d H:i:s'))->save();
 	$imagingTasks = in_array($Task->get('typeID'),array(1,2,8,15,16,17));
 	// Storage Group
 	$StorageGroup = $Task->getStorageGroup();
@@ -91,19 +86,22 @@ try
 	// Update Task State ID -> Update Storage Node ID -> Save
 	if (!$Task->save())
 		throw new Exception(_('Failed to update Task'));
-	// Success!
-	$il = new ImagingLog(array(
-		'hostID' => $Host->get('id'),
-		'start' => date('Y-m-d H:i:s'),
-		'image' => $Host->getImage()->get('name'),
-		'type' => $_REQUEST['type'],
-	));
-	$il->save();
+	if ($imagingTasks)
+	{
+		// Success!
+		$il = new ImagingLog(array(
+			'hostID' => $Host->get('id'),
+			'start' => $FOGCore->nice_date()->format('Y-m-d H:i:s'),
+			'image' => $Host->getImage()->get('name'),
+			'type' => $_REQUEST['type'],
+		));
+		$il->save();
+	}
 	// Task Logging.
 	$TaskLog = new TaskLog(array(
 		'taskID' => $Task->get('id'),
 		'taskStateID' => $Task->get('stateID'),
-		'createTime' => $Task->get('createTime'),
+		'createdTime' => $Task->get('createdTime'),
 		'createdBy' => $Task->get('createdBy'),
 	));
 	$TaskLog->save();

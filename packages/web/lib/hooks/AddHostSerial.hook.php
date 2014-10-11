@@ -12,9 +12,9 @@ class AddHostSerial extends Hook
 		{
 			foreach((array)$arguments['data'] AS $i => $data)
 			{
-				$Host = current($this->FOGCore->getClass('HostManager')->find(array('name' => $data['host_name'])));
+				$Host = current($this->getClass('HostManager')->find(array('name' => $data['host_name'])));
 				if ($Host && $Host->isValid())
-					$Inventory = current($this->FOGCore->getClass('InventoryManager')->find(array('hostID' => $Host->get('id'))));
+					$Inventory = $Host->get('inventory');
 				// Add column template into 'templates' array
 				$arguments['templates'][7] = '${serial}';
 				// Set the field.

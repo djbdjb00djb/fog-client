@@ -15,7 +15,7 @@ class CaponeManager extends FOGManagerController
 	*/
 	public function install($name)
     {   
-        $sql = "CREATE TABLE fog.capone
+        $sql = "CREATE TABLE capone
         (cID INTEGER NOT NULL AUTO_INCREMENT,
         cImageID INTEGER NOT NULL,
         cOSID INTEGER NOT NULL,
@@ -53,9 +53,11 @@ class CaponeManager extends FOGManagerController
     }
 	public function uninstall()
 	{
-		if( !$this->DB->query("DROP TABLE capone"))
+		if (!$this->DB->query("DROP TABLE capone"))
 			return false;
-		if (!$this->FOGCore->getClass('ServiceManager')->destroy(array('name' => 'FOG_PLUGIN_CAPON_%')))
+		if (!$this->getClass('ServiceManager')->destroy(array('name' => 'FOG_PLUGIN_CAPON_%')))
+			return false;
+		if (!$this->getClass('PXEMenuOptionsManager')->destroy(array('name' => 'fog.capone')))
 			return false;
 		return true;
 	}

@@ -174,7 +174,7 @@ displayOSChoices()
 			echo "";
 			echo "          1) Redhat Based Linux (Redhat, CentOS, Mageia)";
 			echo "          2) Debian Based Linux (Debian, Ubuntu, Kubuntu, Edubuntu)";
-			echo "			3) Arch Linux";
+			echo "			    3) Arch Linux";
 			echo "";
 			echo -n "  Choice: [${strSuggestedOS}]";
 			read osid;
@@ -373,6 +373,7 @@ snmysqlpass=\"$snmysqlpass\";
 snmysqlhost=\"$snmysqlhost\";
 installlang=\"$installlang\";
 donate=\"$donate\";
+storageLocation=\"$storageLocation\";
 fogupdateloaded=\"1\"" > "$fogprogramdir/.fogsettings";
 
 }

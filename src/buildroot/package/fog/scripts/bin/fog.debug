@@ -8,7 +8,7 @@ clearScreen;
 
 displayBanner;
 
-setupDNS ${dns}
+#setupDNS ${dns}
 
 echo " You have entered into FOG debug";
 echo " mode.  Below is a list of common";
@@ -31,13 +31,18 @@ echo "Below is a variable dump from FOG";
 osname="";
 mbrfile="";
 hd="";
-determineOS $osid;
+if [ -n "$osid" ]; then
+	determineOS $osid;
+fi
 echo "osid=${osid}";
 echo "osname=${osname}";
 echo "mbrfile=${mbrfile}";
 echo "type=${type}";
 echo "storage=${storage}";
 echo "img=${img}";
+echo "imgType=${imgType}";
+echo "imgFormat=${imgFormat}";
+echo "imgPartitionType=${imgPartitionType}";
 getHardDisk;
 echo "hd=${hd}";
 part=$hd'1';

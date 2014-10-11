@@ -60,6 +60,7 @@ expandPartition()
 		if [ "$is_fixed" == "1" ]; then
 			dots "Not expanding ($1) fixed size";
 			echo "Done";
+			debugPause;
 			return;
 		fi
 	fi
@@ -80,6 +81,7 @@ EOFNTFSRESTORE
 		dots "Not expanding ($1 $fstype)";
 	fi
 	echo "Done";
+	debugPause;
 	if [ "$do_reset_flag" == "1" ]; then
 		resetFlag $1;
 	fi
@@ -143,6 +145,7 @@ shrinkPartition()
 		if [ "$is_fixed" == "1" ]; then
 			dots "Not shrinking ($1) fixed size";
 			echo "Done";
+			debugPause;
 			return;
 		fi
 	fi
@@ -167,6 +170,7 @@ EOFNTFS`
 		too_big=`echo $tmpSuc | grep "bigger than the device size"`;
 		ok_size=`echo $tmpSuc | grep "volume size is already OK"`;
 		echo "Done";
+		debugPause;
 		if [ -n "$too_big" ]; then
 			echo " * Not resizing filesystem $1 (part too small)";
 			do_resizefs=0;
@@ -190,6 +194,7 @@ EOFNTFS`
 y
 FORCEY
 			echo "Done";
+			debugPause;
 			resetFlag $1;
 		fi
 		if [ "$do_resizepart" == "1" ]; then
@@ -223,6 +228,7 @@ FORCEY
 		dots "Checking $fstype volume ($1)";
 		e2fsck -fp $1 &>/dev/null;
 		echo "Done";
+		debugPause;
 		extminsizenum=`resize2fs -P $1 2>/dev/null | awk -F': ' '{print $2}'`;
 		block_size=`dumpe2fs -h $1 2>/dev/null | grep "^Block size:" | awk '{print $3}'`;
 		size=`expr $extminsizenum '*' $block_size`;
@@ -233,9 +239,11 @@ FORCEY
 		dots "Shrinking $fstype volume ($1)";
 		resize2fs $1 -M &>/dev/null;
 		echo "Done";
+		debugPause;
 		dots "Shrinking $1 partition";
 		resizePartition "$1" "$sizeextresize"
 		echo "Done";
+		debugPause;
 		runPartprobe $hd;
 		dots "Resizing $fstype volume ($1)";
 		resize2fs $1 &>/dev/null;
@@ -244,6 +252,7 @@ FORCEY
 		dots "Not shrinking ($1 $fstype)";
 	fi
 	echo "Done";
+	debugPause;
 }
 # $1 is the part
 resetFlag() 
@@ -254,6 +263,7 @@ resetFlag()
 			dots "Clearing ntfs flag";
 			ntfsfix -b -d $1 &>/dev/null;
 			echo "Done";
+			debugPause;
 		fi
 	fi
 }
@@ -294,10 +304,10 @@ countExtfs()
 	echo $count;
 }
 
-setupDNS()
-{
-	echo "nameserver $1" > /etc/resolv.conf
-}
+#setupDNS()
+#{
+#	echo "nameserver $1" > /etc/resolv.conf
+#}
 
 # $1 = Source File
 # $2 = Target
@@ -357,16 +367,23 @@ getValidRestorePartitions()
 # $1 = DriveName  (e.g. /dev/sdb)
 # $2 = DriveNumber  (e.g. 1)
 # $3 = ImagePath  (e.g. /net/foo)
+# $4 = ImagePartitionType  (e.g. all, mbr, 1, 2, 3, etc.)
 makeAllSwapSystems() 
 {
 	local drive="$1";
 	local driveNum="$2";
 	local imagePath="$3";
+	local imgPartitionType="$4";
 	local parts=`fogpartinfo --list-parts $drive 2>/dev/null`;
 	local part="";
+	local diskLength=`expr length $drive`;
+	local partNum="";
 	
 	for part in $parts; do
-		makeSwapSystem "${imagePath}/d${driveNum}.original.swapuuids" "$part";
+		partNum=${part:$diskLength};
+		if [ "$imgPartitionType" == "all" -o "$imgPartitionType" == "$partNum" ]; then
+			makeSwapSystem "${imagePath}/d${driveNum}.original.swapuuids" "$part";
+		fi
 	done
 }
 
@@ -410,6 +427,7 @@ y
 EOFREG
 		umount /ntfs &> /dev/null
 		echo "Done";
+		debugPause;
 	fi
 }
 
@@ -422,6 +440,7 @@ fixWin7boot()
 	cp /usr/share/fog/BCD /bcdstore/Boot/BCD;
 	umount /bcdstore;
 	echo "Done";
+	debugPause;
 }
 
 clearMountedDevices()
@@ -436,7 +455,8 @@ delallv
 q
 y
 EOFMOUNT
-		echo "Done";		
+		echo "Done";
+		debugPause;
 		umount /ntfs
 	fi
 }
@@ -457,15 +477,19 @@ removePageFile()
 			ntfs-3g -o force,rw $part /ntfs;
 			if [ "$?" == "0" ]; then
 				echo "Done";
+				debugPause;
 				dots "Removing page file";
 				rm -f "/ntfs/pagefile.sys";
 				echo "Done";
+				debugPause;
 				dots "Removing hibernate file";
 				rm -f "/ntfs/hiberfil.sys";
 				echo "Done";
+				debugPause;
 				umount /ntfs;
 			else
 				echo "Failed";
+				debugPause;
 			fi
 		fi
 	fi
@@ -548,6 +572,9 @@ determineOS()
 			osname="Windows 8.1";
 			mbrfile="/usr/share/fog/mbr/win8.mbr";
 			defaultpart2start="368050176B";
+		elif [ "$1" = "8" ]; then
+			osname="Apple Mac OS";
+			mbrfile="";
 		elif [ "$1" = "50" ]; then
 			osname="Linux";
 			mbrfile="";
@@ -653,6 +680,7 @@ correctVistaMBR()
 	rm /tmp.mbr.fix.txt &>/dev/null
 	dd if=/mbr.mbr of=$1 count=1 bs=512 &>/dev/null
 	echo "Done";
+	debugPause;
 }
 
 displayBanner()
@@ -671,7 +699,7 @@ displayBanner()
 	echo "  |                      #                     ..:;###..                     |";
 	echo "  |                                                                          |";
 	echo "  |                       Free Computer Imaging Solution                     |";
-	echo "  |                               Version 1.2.0                              |";
+	echo "  |                               Version 1.3.0                              |";
 	echo "  |                                                                          |";
 	echo "  +--------------------------------------------------------------------------+";
 	echo "  | Created by:                                                              |";
@@ -704,6 +732,7 @@ handleError()
 	echo " #                                                                           #";	
 	echo " #############################################################################";	
 	sleep 60;
+	debugPause;
 	exit 0;
 }
 
@@ -726,6 +755,7 @@ handleWarning()
 	echo " #                                                                           #";	
 	echo " #############################################################################";	
 	sleep 60;
+	debugPause;
 }
 
 # $1 is the drive
@@ -798,9 +828,14 @@ saveGRUB()
 		awk -F, '{print $1;}' | \
 		grep start= | \
 		awk -F= 'BEGIN{start=1000000000;}{if($2 > 0 && $2 < start){start=$2;}}END{printf("%d\n", start);}'`;
-	local count=$first;
+	local has_grub=`dd if=$1 bs=512 count=1 2>&1 | grep GRUB`
+	if [ "$has_grub" != "" ]; then
+		local count=$first;
+		touch "$imagePath/d${disk_number}.has_grub";
+	else
+		local count=1;
+	fi
 	dd if="$disk" of="$imagePath/d${disk_number}.mbr" count="${count}" bs=512 &>/dev/null;
-	touch "$imagePath/d${disk_number}.has_grub";
 }
 
 # Checks for the existence of the grub embedding area in the image directory.
@@ -836,13 +871,248 @@ restoreGRUB()
 	local imagePath="$3";
 	local tmpMBR="${imagePath}/d${disk_number}.mbr";
 	local count=`du -B 512 "${tmpMBR}" | awk '{print $1;}'`;
+	if [ "$count" == "8" ]; then
+		local count=1;
+	fi
 	dd if="${tmpMBR}" of="${disk}" bs=512 count="${count}" &>/dev/null;
 }
 
 debugPause()
 {
-	if [ "$mode" == "debug" ]; then
+	if [ -n "$isdebug" -o "$mode" == "debug" ]; then
 		echo 'Press [Enter] key to continue.';
 		read -p "$*";
 	fi
 }
+
+savePartitionTablesAndBootLoaders()
+{
+	local disk="$1";
+	local intDisk="$2";
+	local imagePath="$3";
+	local osid="$4";
+	local hasgpt="$5";
+	local have_extended_partition="$6";
+	local imgPartitionType="$7";
+
+	if [ "$imgPartitionType" == "all" -o "$imgPartitionType" == "mbr" ]; then
+		makeSwapUUIDFile "${imagePath}/d${intDisk}.original.swapuuids";
+		if [ "$hasgpt" == "0" -a "$osid" == "50" -a "$intDisk" == "1" ]; then
+			dots "Saving MBR and GRUB";
+			saveGRUB "${disk}" "${intDisk}" "${imagePath}";
+			if [ "$have_extended_partition" == "1" ]; then
+				sfdisk -d $disk 2>/dev/null >${imagePath}/d${intDisk}.partitions;
+			fi
+		elif [ "$hasgpt" == "0" ]; then
+			dots "Saving MBR";
+			dd if=$disk of=$imagePath/d${intDisk}.mbr count=1 bs=512 &>/dev/null;
+			if [ "$have_extended_partition" == "1" ]; then
+				sfdisk -d $disk 2>/dev/null >${imagePath}/d${intDisk}.partitions;
+			fi
+		else
+			dots "Saving Partition Tables";
+			sgdisk -b $imagePath/d${intDisk}.mbr $disk 2>&1 >/dev/null;
+		fi
+	else
+		dots "Skipping partition tables and MBR";
+	fi
+	echo "Done";
+	debugPause;
+}
+
+clearPartitionTables()
+{
+	local disk="$1";
+	dots "Erasing current MBR/GPT Tables";
+	sgdisk -Z $disk >/dev/null;
+	runPartprobe $disk;
+	echo "Done";
+	debugPause;
+	dots "Creating disk with new label";
+	parted -s $disk mklabel msdos;
+	runPartprobe $disk;
+	echo "Done";
+	debugPause;
+}
+
+restorePartitionTablesAndBootLoaders()
+{
+	local disk="$1";
+	local intDisk="$2";
+	local imagePath="$3";
+	local osid="$4";
+	local imgPartitionType="$5";
+	local tmpMBR="";
+	local has_GRUB="";
+	local mbrsize="";
+	if [ "$imgPartitionType" == "all" -o "$imgPartitionType" == "mbr" ]; then
+		clearPartitionTables $disk;
+		debugPause;
+		tmpMBR="$imagePath/d${intDisk}.mbr";
+		has_GRUB=`hasGRUB "${disk}" "${intDisk}" "${imagePath}"`;
+		mbrsize=`ls -l $tmpMBR | awk '{print $5}'`;
+		if [ -f $tmpMBR ]; then
+			if [ "$mbrsize" != "32256" -a "$has_GRUB" != "1" ] && [ "$mbrsize" != "512" ]; then
+				dots "Restoring Partition Tables";
+				sgdisk -gel $tmpMBR $disk 2>&1 >/dev/null;
+				global_gptcheck="yes";
+			elif [ "$mbrsize" == "32256" -o "$has_GRUB" == "1" ] && [ "$intDisk" == "1" ] && [ "$osid" == "50" ]; then
+				dots "Restoring MBR and GRUB";
+				restoreGRUB "${disk}" "${intDisk}" "${imagePath}";
+				if [ -e "${imagePath}/d${intDisk}.partitions" ]; then
+					echo "Done";
+					debugPause;
+					dots "Extended partitions";
+					sfdisk $disk < ${imagePath}/d${intDisk}.partitions &>/dev/null;
+				else
+					echo "Done";
+					debugPause;
+					dots "No extended partitions";
+				fi
+			else
+				dots "Restoring MBR";
+				dd if=$tmpMBR of=$disk bs=512 count=1 &>/dev/null;
+				if [ -e "${imagePath}/d${intDisk}.partitions" ]; then
+					echo "Done";
+					debugPause;
+					dots "Extended partitions";
+					sfdisk $disk < ${imagePath}/d${intDisk}.partitions &>/dev/null;
+				else
+					echo "Done";
+					debugPause;
+					dots "No extended partitions";
+				fi
+			fi
+			runPartprobe $disk;
+			echo "Done";
+			debugPause;
+			sleep 3;
+		else
+			handleError "Image Store Corrupt: Unable to locate MBR.";
+		fi
+	else
+		dots "Skipping partition tables and MBR";
+		echo "Done";
+		debugPause;
+	fi
+}
+
+savePartition()
+{
+	local part="$1";
+	local intDisk="$2";
+	local imagePath="$3";
+	local diskLength="$4";
+	local cores="$5";
+	local imgPartitionType="$6";
+	local partNum="";
+	local fstype="";
+	local imgpart="";
+	
+	partNum=${part:$diskLength};
+	if [ "$imgPartitionType" == "all" -o "$imgPartitionType" == "$partNum" ]; then
+		mkfifo /tmp/pigz1;
+		echo " * Processing Partition: $part ($partNum)";
+		fstype=`fsTypeSetting $part`;
+		if [ "$fstype" != "swap" ]; then
+			echo -n " * Using partclone.";
+			echo $fstype;
+			sleep 5;
+			imgpart="$imagePath/d${intDisk}p${partNum}.img";
+			uploadFormat "$cores" "/tmp/pigz1" "$imgpart";
+			partclone.$fstype -c -s $part -O /tmp/pigz1 -N -f 1 2>/tmp/status.fog;
+			mv $imgpart.000 $imgpart 2>/dev/null;
+			debugPause
+			clear;
+			echo " * Image uploaded";
+		else
+			echo " * Not uploading swap partition";
+			saveSwapUUID "${imagePath}/d${intDisk}.original.swapuuids" "$part"; 
+		fi
+		rm /tmp/pigz1;
+	else
+		dots "Skipping partition $partNum";
+		echo "Done";
+		debugPause;
+	fi
+}
+
+restorePartition()
+{
+	if [ -z "$1" ]; then
+		handleError "No partition sent to process";
+	else
+		local part="$1";
+	fi
+	if [ -z "$2" ]; then
+		local intDisk="1";
+	else
+		local intDisk="$2";
+	fi
+	if [ -z "$3" ]; then
+		local imagePath=$imagePath;
+	else
+		local imagePath="$3";
+	fi
+	if [ -z "$4" ]; then
+		local diskLength="`expr length $hd`";
+	else
+		local diskLength="$4";
+	fi
+	if [ -z "$5" ]; then
+		local imgPartitionType="$imgPartitionType";
+	else
+		local imgPartitionType="$5";
+	fi
+	local partNum="";
+	local imgpart="";
+	partNum=${part:$diskLength};
+	echo " * Processing Partition: $part ($partNum)";
+	if [ "$imgPartitionType" == "all" -o "$imgPartitionType" == "$partNum" ] && [ "$mc" == "yes" ]; then
+		writeImageMultiCast $part
+		debugPause;
+		resetFlag $part;
+	elif [ "$imgPartitionType" == "all" -o "$imgPartitionType" == "$partNum" ]; then
+		if [ -f "$imagePath" ]; then
+			imgpart="$imagePath";
+		elif [ "$win7partcnt" == "1" -a -f "$imagePath/sys.img.000" ]; then
+			imgpart="$imagePath/sys.img.*";
+		elif [ "$win7partcnt" == "2" -a -f "$imagePath/sys.img.000" -a -f "$imagePath/rec.img.000" ]; then
+			if [ "$partNum" == "1" ]; then
+				imgpart="$imagePath/rec.img.000";
+			elif [ "$partNum" == "2" ]; then
+				imgpart="$imagePath/sys.img.*";
+			fi
+		elif [ "$win7partcnt" == "3" ]; then
+			if [ "$partNum" == "1" ]; then
+				imgpart="$imagePath/rec.img.000";
+			elif [ "$partNum" == "2" ]; then
+				imgpart="$imagePath/rec.img.001";
+			elif [ "$partNum" == "3" ]; then
+				imgpart="$imagePath/sys.img.*";
+			fi
+		else
+			imgpart="${imagePath}/d${intDisk}p${partNum}.img*";
+		fi
+		sleep 2;
+		if [ ! -f $imgpart ]; then
+			echo " * Partition File Missing: $imgpart";
+		else
+			writeImage "$imgpart" $part;
+			debugPause;
+		fi
+		resetFlag $part;
+	else
+		dots "Skipping partition $partNum";
+		echo "Done";
+		debugPause;
+	fi
+}
+	
+
+# Local Variables:
+# indent-tabs-mode: t
+# sh-basic-offset: 4
+# sh-indentation: 4
+# tab-width: 4
+# End:

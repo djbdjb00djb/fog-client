@@ -1,8 +1,6 @@
 <?php
 // Require FOG Base
 require('../commons/base.inc.php');
-// Config load check
-if (IS_INCLUDED !== true) die($foglang['NoLoad']);
 // User session data
 $currentUser = (!empty($_SESSION['FOG_USER']) ? unserialize($_SESSION['FOG_USER']) : null);
 // Process Login
@@ -87,8 +85,6 @@ if (!$isHomepage)
 	print "\n\t<!-- Menu -->";
 	print "\n\t\t".'<div id="sidebar">';
 	$SubMenu->buildMenu();
-	$FOGSubMenu = new FOGSubMenu();
-	//$HookManager->processEvent('SubMenuData', array('FOGSubMenu' => &$FOGSubMenu));
 	print "\n\t\t</div>";
 }
 print "\n\t</div>";
@@ -133,5 +129,4 @@ if ($isHomepage)
 $HookManager->processEvent('JAVASCRIPT');
 print "\n</body>";
 print "\n</html>";
-session_write_close();
 ob_end_flush();

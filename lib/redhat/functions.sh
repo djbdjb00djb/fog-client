@@ -1,4 +1,4 @@
-n#
+#
 #  FOG is a computer imaging solution.
 #  Copyright (C) 2007  Chuck Syperski & Jian Zhang
 #
@@ -44,8 +44,8 @@ define( \"WEBROOT\", \"${webdirdest}\" );
 ?>" > ${servicedst}/etc/config.php;
 
 	echo -n "  * Starting FOG Multicast Management Server..."; 
-	service ${initdMCfullname} restart >/dev/null 2>&1;
-	service ${initdMCfullname} status  >/dev/null 2>&1;
+	nohup service ${initdMCfullname} restart >/dev/null 2>&1;
+	nohup service ${initdMCfullname} status  >/dev/null 2>&1;
 	if [ "$?" != "0" ]
 	then
 		echo "Failed!";
@@ -55,8 +55,8 @@ define( \"WEBROOT\", \"${webdirdest}\" );
 	fi
 	
 	echo -n "  * Starting FOG Image Replicator Server..."; 
-	service ${initdIRfullname} restart >/dev/null 2>&1;
-	service ${initdIRfullname} status  >/dev/null 2>&1;
+	nohup service ${initdIRfullname} restart >/dev/null 2>&1;
+	nohup service ${initdIRfullname} status  >/dev/null 2>&1;
 	if [ "$?" != "0" ]
 	then
 		echo "Failed!";
@@ -66,8 +66,8 @@ define( \"WEBROOT\", \"${webdirdest}\" );
 	fi	
 	
 	echo -n "  * Starting FOG Task Scheduler Server..."; 
-	${initdpath}/${initdSDfullname} stop >/dev/null 2>&1;
-	${initdpath}/${initdSDfullname} start >/dev/null 2>&1;
+	nohup service ${initdSDfullname} stop >/dev/null 2>&1;
+	nohup service ${initdSDfullname} start >/dev/null 2>&1;
 	if [ "$?" != "0" ]
 	then
 		echo "Failed!";
@@ -81,8 +81,9 @@ configureNFS()
 {
 	echo -n "  * Setting up and starting NFS Server..."; 
 	
-	echo "/images *(ro,sync,no_wdelay,insecure_locks,no_root_squash,insecure,fsid=1,${nfsexportsopts})
-/images/dev *(rw,sync,no_wdelay,no_root_squash,insecure,fsid=2,${nfsexportsopts})" > "$nfsconfig";
+	echo "${storageLocation}                        *(ro,sync,no_wdelay,insecure_locks,no_root_squash,insecure,fsid=1)
+${storageLocation}/dev                    *(rw,sync,no_wdelay,no_root_squash,insecure,fsid=2)
+/opt/fog/clamav							  *(rw,sync,no_wdelay,no_root_squash,insecure,fsid=3)" > "${nfsconfig}";
 	chkconfig rpcbind on;
 	service rpcbind restart >/dev/null 2>&1;
 	chkconfig ${nfsservice} on;
@@ -480,6 +481,12 @@ class Config
 		fi
 		
 		echo "OK";
+		if [ -d "${webdirdest}.prev" ]; then
+			echo "  * Copying back any custom hook files.";
+			cp -Rf $webdirdest.prev/lib/hooks $webdirdest/lib/;
+			echo "  * Copying back any custom report files.";
+			cp -Rf $webdirdest.prev/management/reports $webdirdest/management/;
+		fi
 	fi
 }
 
@@ -615,5 +622,14 @@ confirmPackageInstallation()
 setupFreshClam()
 {
 	echo  -n "  * Configuring Fresh Clam...";
-	echo "Skipped (See wiki for installation instructions)";
+	if [ ! -d "/opt/fog/clamav" ]; then
+		cp -r ../packages/clamav /opt/fog/
+		chmod -R 777 /opt/fog/clamav
+	fi
+	if [ -d "/opt/fog/clamav" ]; then
+		echo "OK";
+	else
+		echo "Failed!";
+		exit 1;
+	fi
 }

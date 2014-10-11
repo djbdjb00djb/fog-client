@@ -9,10 +9,10 @@ try
 	$Host = $HostManager->getHostByMacAddresses($MACs);
 	if (!$Host->isValid()) throw new Exception('#!ih');
 	// Try and get the task.
-	$Task = current($Host->get('task'));
+	$Task = $Host->get('task');
 	// Work on the current Snapin Task.
 	$SnapinTask = new SnapinTask($_REQUEST['taskid']);
-	if (!$SnapinTask->isValid()) throw new Exception('#!er: Something went wrong with getting the snapin.');
+	if (!$SnapinTask->isValid()) throw new Exception('#!ns');
 	//Get the snapin to work off of.
 	$Snapin = new Snapin($SnapinTask->get('snapinID'));
 	// Assign the file for sending.
@@ -34,10 +34,14 @@ try
 		// Update the snapin task information.
 		$SnapinTask->set('stateID',1)->set('return',-1)->set('details','Pending...');
 		// Save and return!
-		if ($SnapinTask->save()) print "#!ok";
+		if ($SnapinTask->save()) $Datatosend = "#!ok";
 	}
 }
 catch (Exception $e)
 {
-	print $e->getMessage();
+	$Datatosend = $e->getMessage();
 }
+if ($FOGCore->getSetting('FOG_NEW_CLIENT') && $FOGCore->getSetting('FOG_AES_ENCRYPT'))
+	print "#!en=".$FOGCore->aesencrypt($Datatosend,$FOGCore->getSetting('FOG_AES_PASS_ENCRYPT_KEY'));
+else
+	print $Datatosend;

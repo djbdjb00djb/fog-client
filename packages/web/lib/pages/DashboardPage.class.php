@@ -62,7 +62,7 @@ class DashboardPage extends FOGPage
 		print "\n\t\t\t<li>";
 		print "\n\t\t\t<h4>"._('Disk Information').'</h4>';
 		print "\n\t\t\t".'<div id="diskusage-selector">';
-		foreach ((array)$this->FOGCore->getClass('StorageNodeManager')->find(array('isEnabled' => 1,'isGraphEnabled' => 1)) AS $StorageNode)
+		foreach ((array)$this->getClass('StorageNodeManager')->find(array('isEnabled' => 1,'isGraphEnabled' => 1)) AS $StorageNode)
 			$options[] = "\n\t\t\t".'<option value="'.$StorageNode->get('id').'">'.$StorageNode->get('name').($StorageNode->get('isMaster') == '1' ? ' *' : '').'</option>';
 		$options ? print "\n\t\t\t".'<select name="storagesel" style="whitespace: no-wrap; width: 100px; position: relative; top: 100px;">'.implode("\n",$options).'</select>' : null;
 		print "\n\t\t\t</div>";
@@ -88,33 +88,28 @@ class DashboardPage extends FOGPage
 		print "\n\t\t\t-->";
 		print "\n\t\t\t</div>";
 		print "\n\t\t\t".'<div id="graph-bandwidth" class="graph"></div>';
-		$DateTimeStart = new DateTime(date('Y-m-d',strtotime('-30 days')), (!ini_get('date.timezone') ? new DateTimeZone('GMT') : new DateTimeZone(ini_get('date.timezone'))));
-		$DateTimeEnd = new DateTime(date('Y-m-d'), (!ini_get('date.timezone') ? new DateTimeZone('GMT') : new DateTimeZone(ini_get('date.timezone'))));
-		$DateTimeEnd = $DateTimeEnd->modify('+1 day');
-		$DatePeriod = new DatePeriod($DateTimeStart, new DateInterval('P1D'), $DateTimeEnd);
+		$DatePeriod = new DatePeriod($this->nice_date()->modify('-29 days'), new DateInterval('P1D'), $this->nice_date()->modify('+1 day'));
 		foreach($DatePeriod AS $Date)
 		{
 			$keyword = '%'.$Date->format('Y-m-d').'%';
-			$ImagingLogs = $this->FOGCore->getClass('ImagingLogManager')->count(array('start' => $keyword, 'type' => array('up','down')));
-			$Graph30dayData[] = '["'.($Date->getTimestamp()*1000).'", '.$ImagingLogs.']';
+			$ImagingLogs = $this->getClass('ImagingLogManager')->count(array('start' => $keyword, 'type' => array('up','down')));
+			$Graph30dayData[] = '["'.(1000*$Date->getTimestamp()).'", '.$ImagingLogs.']';
 		}
-		
 		$ActivityActive = 0;
        	$ActivityQueued = 0;
   		$ActivitySlots = 0;
   		$ActivityTotalClients = 0;
-		foreach( $this->FOGCore->getClass('StorageNodeManager')->find(array('isEnabled' => 1)) AS $StorageNode ) {
-		    if ( $StorageNode && $StorageNode->isValid() ) {
+		foreach($this->getClass('StorageNodeManager')->find(array('isEnabled' => 1)) AS $StorageNode)
+		{
+		    if ($StorageNode && $StorageNode->isValid())
+			{
            		$ActivityActive += $StorageNode->getUsedSlotCount();
 	        	$ActivityQueued += $StorageNode->getQueuedSlotCount();
 	        	$ActivityTotalClients += $StorageNode->get('maxClients');
-
     		}
 		}
    		$ActivitySlots = $ActivityTotalClients -  $ActivityActive - $ActivityQueued;		    		
-   		
-		$StorageNode = current($this->FOGCore->getClass('StorageNodeManager')->find(array('isMaster' => 1, 'isEnabled' => 1)));
-
+		$StorageNode = current($this->getClass('StorageNodeManager')->find(array('isMaster' => 1, 'isEnabled' => 1)));
 		print "\n\t\t\t".'<div class="fog-variable" id="ActivityActive">'.$ActivityActive.'</div>';
 		print "\n\t\t\t".'<div class="fog-variable" id="ActivityQueued">'.$ActivityQueued.'</div>';
 		print "\n\t\t\t".'<div class="fog-variable" id="ActivitySlots">'.($ActivitySlots < 0 ? 0 : $ActivitySlots).'</div>';
@@ -127,19 +122,16 @@ class DashboardPage extends FOGPage
 	public function bandwidth()
 	{
 		// Loop each storage node -> grab stats
-		foreach ((array)$this->FOGCore->getClass('StorageNodeManager')->find(array('isEnabled' => 1, 'isGraphEnabled' => 1)) AS $StorageNode)
+		$StorageNode = new StorageNode($_REQUEST['nodeid']);
+		$URL = sprintf('http://%s/%s?dev=%s', rtrim($StorageNode->get('ip'), '/'), ltrim($this->FOGCore->getSetting("FOG_NFS_BANDWIDTHPATH"), '/'), $StorageNode->get('interface'));
+		// Fetch bandwidth stats from remote server
+		if ($fetchedData = $this->FOGCore->fetchURL($URL))
 		{
-			// TODO: Need to move interface to per storage group server
-			$URL = sprintf('http://%s/%s?dev=%s', rtrim($StorageNode->get('ip'), '/'), ltrim($this->FOGCore->getSetting("FOG_NFS_BANDWIDTHPATH"), '/'), $StorageNode->get('interface'));
-			// Fetch bandwidth stats from remote server
-			if ($fetchedData = $this->FOGCore->fetchURL($URL))
-			{
-				// Legacy client
-				if (preg_match('/(.*)##(.*)/U', $fetchedData, $match))
-					$data[$StorageNode->get('name')] = array('rx' => $match[1], 'tx' => $match[2]);
-				else
-					$data[$StorageNode->get('name')] = json_decode($fetchedData, true);
-			}
+			// Legacy client
+			if (preg_match('/(.*)##(.*)/U', $fetchedData, $match))
+				$data = array('rx' => $match[1], 'tx' => $match[2]);
+			else
+				$data = json_decode($fetchedData, true);
 		}
 		print json_encode((array)$data);
 	}

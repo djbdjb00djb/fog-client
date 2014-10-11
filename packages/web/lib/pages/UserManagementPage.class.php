@@ -47,7 +47,7 @@ class UserManagementPage extends FOGPage
 		// Set title
 		$this->title = _('All Users');
 		// Find data
-		$Users = $this->FOGCore->getClass('UserManager')->find();
+		$Users = $this->getClass('UserManager')->find();
 		// Row data
 		foreach ((array)$Users AS $User)
 		{
@@ -79,11 +79,9 @@ class UserManagementPage extends FOGPage
 	{
 		// Variables
 		$keyword = preg_replace('#%+#', '%', '%' . preg_replace('#[[:space:]]#', '%', $this->REQUEST['crit']) . '%');
-		$findWhere = array(
-			'name'		=> $keyword
-		);
+		$Users = new UserManager();
 		// Find data -> Push data
-		foreach ((array)$this->FOGCore->getClass('UserManager')->find($findWhere, 'OR') AS $User)
+		foreach ($Users->search($keyword,'User') AS $User)
 		{
 			$this->data[] = array(
 				'id'	=> $User->get('id'),
@@ -137,17 +135,17 @@ class UserManagementPage extends FOGPage
 		try
 		{
 			// UserManager
-			$UserManager = $this->FOGCore->getClass('UserManager');
+			$UserManager = $this->getClass('UserManager');
 			// Error checking
-			if ($UserManager->exists($_POST['name']))
+			if ($UserManager->exists($_REQUEST['name']))
 				throw new Exception(_('Username already exists'));
-			if (!$UserManager->isPasswordValid($_POST['password'], $_POST['password_confirm']))
+			if (!$UserManager->isPasswordValid($_REQUEST['password'], $_REQUEST['password_confirm']))
 				throw new Exception(_('Password is invalid'));
 			// Create new Object
 			$User = new User(array(
-				'name'		=> $_POST['name'],
-				'type'		=> (isset($_POST['isGuest']) ? true : '0'),
-				'password'	=> $_POST['password'],
+				'name'		=> $_REQUEST['name'],
+				'type'		=> (isset($_REQUEST['isGuest']) ? true : '0'),
+				'password'	=> $_REQUEST['password'],
 				'createdBy'	=> $_SESSION['FOG_USERNAME']
 			));
 			// Save
@@ -170,7 +168,7 @@ class UserManagementPage extends FOGPage
 			// Hook
 			$this->HookManager->processEvent('USER_ADD_FAIL', array('User' => &$User));
 			// Log History event
-			$this->FOGCore->logHistory(sprintf('%s add failed: Name: %s, Error: %s', _('User'), $_POST['name'], $e->getMessage()));
+			$this->FOGCore->logHistory(sprintf('%s add failed: Name: %s, Error: %s', _('User'), $_REQUEST['name'], $e->getMessage()));
 			// Set session message
 			$this->FOGCore->setMessage($e->getMessage());
 			// Redirect to new entry
@@ -222,21 +220,21 @@ class UserManagementPage extends FOGPage
 		try
 		{
 			// UserManager
-			$UserManager = $this->FOGCore->getClass('UserManager');
+			$UserManager = $this->getClass('UserManager');
 			// Error checking
-			if ($UserManager->exists($_POST['name'], $User->get('id')))
+			if ($UserManager->exists($_REQUEST['name'], $User->get('id')))
 				throw new Exception(_('Username already exists'));
-			if ($_POST['password'] && $_POST['password_confirm'])
+			if ($_REQUEST['password'] && $_REQUEST['password_confirm'])
 			{
-				if (!$UserManager->isPasswordValid($_POST['password'], $_POST['password_confirm']))
+				if (!$UserManager->isPasswordValid($_REQUEST['password'], $_REQUEST['password_confirm']))
 					throw new Exception(_('Password is invalid'));
 			}
 			// Update User Object
-			$User->set('name', $_POST['name'])
-				 ->set('type', ($_POST['isGuest'] == 'on' ? '1' : '0'));
+			$User->set('name', $_REQUEST['name'])
+				 ->set('type', ($_REQUEST['isGuest'] == 'on' ? '1' : '0'));
 			// Set new password if password was passed
-			if ($_POST['password'] && $_POST['password_confirm'])
-				$User->set('password',	$_POST['password']);
+			if ($_REQUEST['password'] && $_REQUEST['password_confirm'])
+				$User->set('password',	$_REQUEST['password']);
 			// Save
 			if ($User->save())
 			{
@@ -257,79 +255,10 @@ class UserManagementPage extends FOGPage
 			// Hook
 			$this->HookManager->processEvent('USER_UPDATE_FAIL', array('User' => &$User));
 			// Log History event
-			$this->FOGCore->logHistory(sprintf('%s update failed: Name: %s, Error: %s', _('User'), $_POST['name'], $e->getMessage()));
+			$this->FOGCore->logHistory(sprintf('%s update failed: Name: %s, Error: %s', _('User'), $_REQUEST['name'], $e->getMessage()));
 			// Set session message
 			$this->FOGCore->setMessage($e->getMessage());
 			// Redirect to new entry
-			$this->FOGCore->redirect($this->formAction);
-		}
-	}
-	public function delete()
-	{
-		// Find
-		$User = new User($this->request['id']);
-		// Title
-		$this->title = sprintf('%s: %s', _('Remove'), $User->get('name'));
-		// Headerdata
-		unset($this->headerData);
-		// Attributes
-		$this->attributes = array(
-			array(),
-			array(),
-		);
-		// Templates
-		$this->templates = array(
-			'${field}',
-			'${input}',
-		);
-		$fields = array(
-			_('Please confirm you want to delete').' <b>'.$User->get('name').'</b>' => '<input type="submit" value="${title}" />',
-		);
-		foreach((array)$fields AS $field => $input)
-		{
-			$this->data[] = array(
-				'field' => $field,
-				'input' => $input,
-				'title' => $this->title,
-			);
-		}
-		print "\n\t\t\t".'<form method="post" action="'.$this->formAction.'" class="c">';
-		// Hook
-		$this->HookManager->processEvent('USER_DELETE', array('headerData' => &$this->headerData, 'data' => &$this->data, 'templates' => &$this->templates, 'attributes' => &$this->attributes));
-		// Output
-		$this->render();
-		print '</form>';
-	}
-	public function delete_post()
-	{
-		// Find
-		$User = new User($this->request['id']);
-		// Hook
-		$this->HookManager->processEvent('USER_DELETE_POST', array('User' => &$User));
-		// POST
-		try
-		{
-			// Error checking
-			if (!$User->destroy())
-				throw new Exception(_('Failed to destroy User'));
-			// Hook
-			$this->HookManager->processEvent('USER_DELETE_SUCCESS', array('User' => &$User));
-			// Log History event
-			$this->FOGCore->logHistory(sprintf('%s: ID: %s, Name: %s', _('User deleted'), $User->get('id'), $User->get('name')));
-			// Set session message
-			$this->FOGCore->setMessage(sprintf('%s: %s', _('User deleted'), $User->get('name')));
-			// Redirect
-			$this->FOGCore->redirect(sprintf('?node=%s', $this->request['node']));
-		}
-		catch (Exception $e)
-		{
-			// Hook
-			$this->HookManager->processEvent('USER_DELETE_FAIL', array('User' => &$User));
-			// Log History event
-			$this->FOGCore->logHistory(sprintf('%s %s: ID: %s, Name: %s', _('User'), _('deleted'), $User->get('id'), $User->get('name')));
-			// Set session message
-			$this->FOGCore->setMessage($e->getMessage());
-			// Redirect
 			$this->FOGCore->redirect($this->formAction);
 		}
 	}

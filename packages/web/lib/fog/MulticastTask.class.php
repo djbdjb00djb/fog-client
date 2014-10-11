@@ -8,13 +8,15 @@ class MulticastTask extends FOGBase
 		$arTasks = array();
 		foreach($FOGCore->getClass('MulticastSessionsManager')->find(array('stateID' => array(0,1,2,3))) AS $MultiSess)
 		{
+			$count = $FOGCore->getClass('MulticastSessionsAssociationManager')->count(array('msID' => $MultiSess->get('id')));
 			$Image = new Image($MultiSess->get('image'));
 			$Tasks[] = new self(
 				$MultiSess->get('id'), 
 				$MultiSess->get('name'),
-				$MultiSess->get('port'),$root.'/'.$MultiSess->get('logpath'),
+				$MultiSess->get('port'),
+				$root.'/'.$MultiSess->get('logpath'),
 				$FOGCore->getSetting('FOG_UDPCAST_INTERFACE'),
-				count($FOGCore->getClass('MulticastSessionsAssociationManager')->find(array('msID' => $MultiSess->get('id')))),
+				($count > 0 ? $count : ($MultiSess->get('clients') > 0 ? $MultiSess->get('clients') : $FOGCore->getClass('HostManager')->count())),
 				$MultiSess->get('isDD'),
 				$Image->get('osID')
 			);
@@ -56,11 +58,15 @@ class MulticastTask extends FOGBase
 	{
 		$interface = "";
 		if ($this->getInterface() != null && strlen($this->getInterface()) > 0)
-			$interface = sprintf('--interface %s',$this->getInterface());
+			$interface = sprintf(' --interface %s',$this->getInterface());
 		$cmd = null;
 		$wait = '';
-		if (UDPSENDER_MAXWAIT != null)
-			$wait = sprintf('--max-wait %d',UDPSENDER_MAXWAIT);
+		$waitTemp = $this->FOGCore->getSetting('FOG_UDPCAST_MAXWAIT');
+		$count = '';
+		$countTemp = $this->getClientCount();
+		$count = sprintf(' --min-receivers %d',($countTemp > 0 ? $countTemp : $this->getClass('HostManager')->count()));
+		if ($waitTemp)
+			$wait = sprintf(' --max-wait %d',($waitTemp > 0 ? $waitTemp * 60 : 60));
 		if (($this->getOSID() == 5 || $this->getOSID() == 6 || $this->getOSID() == 7) && $this->getImageType() == 1)
 		{
 			// Only Windows 7 and 8
@@ -68,32 +74,61 @@ class MulticastTask extends FOGBase
 			$strSys = null;
 			if (is_dir($this->getImagePath()))
 			{
-				$filelist = array();
-				if ($handle = opendir($this->getImagePath()))
+				if (file_exists(rtrim($this->getImagePath(),'/').'/rec.img.000') || file_exists(rtrim($this->getImagePath(),'/').'/sys.img.000'))
 				{
-					while (false !== ($file = readdir($handle)))
+					$filelist = array();
+					if ($handle = opendir($this->getImagePath()))
 					{
-						if ($file != '.' && $file != '..')
+						while (false !== ($file = readdir($handle)))
 						{
-							if ($file == 'rec.img.000')
-								$strRec=rtrim($this->getImagePath(),'/').'/rec.img.*';
-							if ($file == 'sys.img.000')
-								$strSys=rtrim($this->getImagePath(),'/').'/sys.img.*';
+							if ($file != '.' && $file != '..')
+							{
+								if ($file == 'rec.img.000')
+									$strRec=rtrim($this->getImagePath(),'/').'/rec.img.*';
+								if ($file == 'sys.img.000')
+									$strSys=rtrim($this->getImagePath(),'/').'/sys.img.*';
+							}
 						}
+						natsort($filelist);
+						closedir($handle);
 					}
-					sort($filelist);
-					closedir($handle);
+				}
+				else
+				{
+					$filelist = array();
+					if ($handle = opendir($this->getImagePath()))
+					{
+						while (false!==($file=readdir($handle)))
+						{
+							if ($file != '.' && $file != '..')
+							{
+								$ext = '';
+								sscanf($file,'d1p%d.%s',$part,$ext);
+								if ($ext == 'img')
+									$filelist[] = $file;
+							}
+						}
+						natsort($filelist);
+						closedir($handle);
+					}
 				}
 			}
-
 			if ($strRec && $strSys)
 			{
 				// two parts
-				$cmd = 'cat '.$strRec.'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
-				$cmd .= 'cat '.$strSys.'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
+				$cmd = 'cat '.$strRec.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
+				$cmd .= 'cat '.$strSys.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
 			}
 			else if (!$strRec && $strSys)
-				$cmd = 'cat '.$strSys.'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
+				$cmd = 'cat '.$strSys.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().' '.$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
+			else if (!$strRec && !$strSys)
+			{
+				foreach ($filelist AS $file)
+				{
+					$path = rtrim($this->getImagePath(),'/').'/'.$file;
+					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
+				}
+			}
 		}
 		else if ($this->getImageType() == 1 || $this->getImageType() == 2)
 		{
@@ -112,17 +147,17 @@ class MulticastTask extends FOGBase
 								$filelist[] = $file;
 						}
 					}
-					sort($filelist);
+					natsort($filelist);
 					closedir($handle);
 				}
 				foreach ($filelist AS $file)
 				{
 					$path = rtrim($this->getImagePath(),'/').'/'.$file;
-					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
+					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
 				}
 			}
 			else
-				$cmd = 'cat '.rtrim($this->getImagePath(),'/').'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
+				$cmd = 'cat '.rtrim($this->getImagePath(),'/').'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
 		}
 		else if ($this->getImageType() == 3)
 		{
@@ -143,14 +178,14 @@ class MulticastTask extends FOGBase
 								$filelist[] = $file;
 						}
 					}
-					sort($filelist);
+					natsort($filelist);
 					closedir($handle);
 				}
 				$cmd = '';
 				foreach ($filelist AS $file)
 				{
 					$path = rtrim($this->getImagePath(),'/').'/'.$file;
-					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
+					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
 				}
 			}
 		}
@@ -168,14 +203,14 @@ class MulticastTask extends FOGBase
 						if ($file != '.' && $file != '..')
 								$filelist[] = $file;
 					}
-					sort($filelist);
+					natsort($filelist);
 					closedir($handle);
 				}
 				$cmd = '';
 				foreach ($filelist AS $file)
 				{
 					$path = rtrim($this->getImagePath(),'/').'/'.$file;
-					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.' --min-receivers '.$this->getClientCount().' --portbase '.$this->getPortBase().' '.$interface.' '.$wait.' --full-duplex --ttl 32 --nokbd;';
+					$cmd .= 'cat '.$path.'|'.UDPSENDERPATH.$count.' --portbase '.$this->getPortBase().$interface.$wait.' --full-duplex --ttl 32 --nokbd;';
 				}
 			}
 		}
@@ -198,7 +233,18 @@ class MulticastTask extends FOGBase
 		if($this->deathTime == null)
 			$this->deathTime = time();
 	}
-
+	
+	private static function killAll($pid,$sig)
+	{
+		exec("ps -ef|awk '\$3 == '$pid' {print \$2}'",$output,$ret);
+		if ($ret) return false;
+		while (list(,$t) = each($output))
+		{
+			if  ($t != $pid)
+				self::killAll($t,$sig);
+		}
+		@posix_kill($pid,$sig);
+	}
 	public function killTask()
 	{
 		foreach($this->arPipes AS $closeme)
@@ -207,25 +253,25 @@ class MulticastTask extends FOGBase
 		{
 			$pid = $this->getPID();
 			if ($pid)
-				@posix_kill($pid, SIGTERM);
+				self::killAll($pid, SIGTERM);
 			@proc_terminate($this->procRef, SIGTERM);
 		}
     	@proc_close($this->procRef);
 		$this->procRef=null;
 		@unlink($this->getUDPCastLogFile());
-		foreach($this->FOGCore->getClass('MulticastSessionsAssociationManager')->find(array('msID' => $this->intID)) AS $MultiSessAssoc)
+		foreach($this->getClass('MulticastSessionsAssociationManager')->find(array('msID' => $this->intID)) AS $MultiSessAssoc)
 		{
 			$Task = new Task($MultiSessAssoc->get('taskID'));
 			$Task->set('stateID','5')->save();
 		}
 		$MultiSess = new MulticastSessions($this->intID);
-		$MultiSess->set('stateID','5')->save();
+		$MultiSess->set('name',null)->set('name','')->set('stateID','5')->save();
 		return true;
 	}
 
 	public function updateStats()
 	{
-		foreach($this->FOGCore->getClass('MulticastSessionsAssociationManager')->find(array('msid' => $this->intID)) AS $MultiSessAssoc)
+		foreach($this->getClass('MulticastSessionsAssociationManager')->find(array('msid' => $this->intID)) AS $MultiSessAssoc)
 		{
 			$Task = new Task($MultiSessAssoc->get('taskID'));
 			if ($Task && $Task->isValid())
@@ -256,3 +302,8 @@ class MulticastTask extends FOGBase
 		return -1;
 	}
 }
+/* Local Variables: */
+/* indent-tabs-mode: t */
+/* c-basic-offset: 4 */
+/* tab-width: 4 */
+/* End: */

@@ -2,17 +2,18 @@
 require('../commons/base.inc.php');
 try
 {
+	$HostManager = new HostManager();
 	//Get MAC to get Host from mac address.
 	$ifconfig = explode('HWaddr',base64_decode(trim($_REQUEST['mac'])));
 	$mac = strtolower(trim($ifconfig[1]));
-	$MACAddress = new MACAddress($mac);
-	if (!$MACAddress->isValid())
+	$MACs = HostManager::parseMacList($mac);
+	if (!$MACs)
 		throw new Exception($foglang['InvalidMAC']);
 	// Set the Host variable to find host record for update.
 	// If it doesn't exist, it creates new inventory record.
-	$Host = $MACAddress->getHost();
+	$Host = $HostManager->getHostByMacAddresses($MACs);
 	if ($Host->isValid())
-		$Inventory = current($FOGCore->getClass('InventoryManager')->find(array('hostID' => $Host->get('id'))));
+		$Inventory = $Host->get('inventory');
 	$sysman=trim(base64_decode($_REQUEST['sysman']));
 	$sysproduct=trim(base64_decode($_REQUEST["sysproduct"]));
 	$sysversion=trim(base64_decode($_REQUEST["sysversion"]));
@@ -49,7 +50,7 @@ try
 	$casever=trim(base64_decode($_REQUEST["casever"]));
 	$caseserial=trim(base64_decode($_REQUEST["caseserial"]));
 	$casesasset=trim(base64_decode($_REQUEST["casesasset"]));						
-	if (!$Inventory)
+	if (!$Inventory || !$Inventory->isValid())
 	{
 			$Inventory = new Inventory(array(
 						'hostID' => $Host->get('id'),

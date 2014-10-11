@@ -38,21 +38,20 @@ class StorageNode extends FOGController
 		// FOGController get()
 		return parent::get($key);
 	}
-	function getStorageGroup()
+	public function getStorageGroup()
 	{
 		return new StorageGroup($this->get('storageGroupID'));
 	}
-	function getNodeFailure($Host)
+	public function getNodeFailure($Host)
 	{
-		$TimeZone = new DateTimeZone((!ini_get('date.timezone') ? 'GMT' : ini_get('date.timezone')));
-		$DateInterval = new DateTime('-5 minutes',$TimeZone);
-		$NodeFailures = $this->FOGCore->getClass('NodeFailureManager')->find(array(
+		$DateInterval = $this->nice_date('-5 minutes');
+		$NodeFailures = $this->getClass('NodeFailureManager')->find(array(
 			'storageNodeID'	=> $this->get('id'), 
 			'hostID'	=> $this->DB->sanitize($Host instanceof Host ? $Host->get('id') : $Host),
 		));
 		foreach($NodeFailures AS $NodeFailure)
 		{
-			$DateTime = new DateTime($NodeFailure->get('failureTime'),$TimeZone);
+			$DateTime = $this->nice_date($NodeFailure->get('failureTime'));
 			if ($DateTime->format('Y-m-d H:i:s') >= $DateInterval->format('Y-m-d H:i:s'))
 				return $NodeFailure;
 		}
@@ -66,7 +65,7 @@ class StorageNode extends FOGController
 	}
 	public function getUsedSlotCount()
 	{
-		return $this->FOGCore->getClass('TaskManager')->count(array(
+		return $this->getClass('TaskManager')->count(array(
 			'stateID'	=> 3,
 			'typeID'	=> array(1,15,17),	// Just Download Tasks are "Used".
 			'NFSMemberID'	=> $this->get('id')
@@ -74,7 +73,7 @@ class StorageNode extends FOGController
 	}
 	public function getQueuedSlotCount()
 	{
-		return $this->FOGCore->getClass('TaskManager')->count(array(
+		return $this->getClass('TaskManager')->count(array(
 			'stateID' => array(1,2),
 			'typeID' => array(1,2,8,15,16,17),
 			'NFSMemberID' => $this->get('id'),

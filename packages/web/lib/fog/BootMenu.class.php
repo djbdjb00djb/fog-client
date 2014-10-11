@@ -46,7 +46,8 @@ class BootMenu extends FOGBase
 	{
 		parent::__construct();
 		// Setups of the basic construct for the menu system.
-		$StorageNode = current($this->FOGCore->getClass('StorageNodeManager')->find(array('isEnabled' => 1, 'isMaster' => 1)));
+		$StorageNode = current($this->getClass('StorageNodeManager')->find(array('isEnabled' => 1, 'isMaster' => 1)));
+		// Sets up the default values stored in the server. Lines 51 - 64
 		$webserver = $this->FOGCore->resolveHostname($this->FOGCore->getSetting('FOG_WEB_HOST'));
 		$webroot = '/'.ltrim(rtrim($this->FOGCore->getSetting('FOG_WEB_ROOT'),'/'),'/').'/';
 		$this->web = "${webserver}${webroot}";
@@ -58,96 +59,97 @@ class BootMenu extends FOGBase
 		$this->timeout = $timeout;
 		$memdisk = 'memdisk';
 		$memtest = $this->FOGCore->getSetting('FOG_MEMTEST_KERNEL');
-		if ($_REQUEST['arch'] != 'x86_64')
-		{
-			$bzImage = $this->FOGCore->getSetting('FOG_TFTP_PXE_KERNEL_32');
-			$imagefile = $this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE_32');
-		}
-		else
-		{
-			$bzImage = $this->FOGCore->getSetting('FOG_TFTP_PXE_KERNEL');
-			$imagefile = $this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE');
-		}
+		// Default bzImage and imagefile based on arch received.
+		$bzImage = ($_REQUEST['arch'] == 'x86_64' ? $this->FOGCore->getSetting('FOG_TFTP_PXE_KERNEL') : $this->FOGCore->getSetting('FOG_TFTP_PXE_KERNEL_32'));
+		$kernel = $bzImage;
+		$imagefile = ($_REQUEST['arch'] == 'x86_64' ? $this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE') : $this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE_32'));
+		$initrd = $imagefile;
+		// Adjust file info if host is valid.
 		if ($Host && $Host->isValid())
 		{
-			$LA = current($this->FOGCore->getClass('LocationAssociationManager')->find(array('hostID' => $Host->get('id'))));
+			// If the host kernel param is set, use that kernel to boot the host.
+			($Host->get('kernel') ? $bzImage = $Host->get('kernel') : null);
+			$kernel = $bzImage;
+			// Check location association of the host.
+			$LA = current($this->getClass('LocationAssociationManager')->find(array('hostID' => $Host->get('id'))));
 			if ($LA)
 				$Location = new Location($LA->get('locationID'));
+			// If the location is valid and set, use the information to build the menu.
 			if ($Location && $Location->isValid())
 			{
-				$StorageNode = $Location->get('tftp') && $Location->get('storageNodeID') ? new StorageNode($Location->get('storageNodeID')) : $this->FOGCore->getClass('StorageGroup',$Location->get('storageGroupID'))->getOptimalStorageNode();
+				// If location tftp method is used, get the files from the location the host is assigned to.  Otherwise get the best node for the host to work from.
+				$StorageNode = $Location->get('tftp') && $Location->get('storageNodeID') ? new StorageNode($Location->get('storageNodeID')) : $this->getClass('StorageGroup',$Location->get('storageGroupID'))->getOptimalStorageNode();
+				// If tftp is set, the storage node and download params are set.
 				if ($Location->get('tftp'))
 				{
 					$memdisk = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/memdisk';
 					$memtest = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_MEMTEST_KERNEL');
-					if ($Host->get('kernel') && $_REQUEST['arch'] != 'x86_64')
-					{
-						$bzImage = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$Host->get('kernel');
-						$imagefile = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE_32');
-					}
-					else if ($Host->get('kernel') && $_REQUEST['arch'] == 'x86_64')
-					{
-						$bzImage = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$Host->get('kernel');
-						$imagefile = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE');
-					}
-					else if ($_REQUEST['arch'] != 'x86_64')
-					{
-						$bzImage = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_TFTP_PXE_KERNEL_32');
-						$imagefile = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE_32');
-					}
-					else
-					{
-						$bzImage = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_TFTP_PXE_KERNEL');
-						$imagefile = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$this->FOGCore->getSetting('FOG_PXE_BOOT_IMAGE');
-					}
+					$bzImage = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$bzImage;
+					$imagefile = 'http://'.$StorageNode->get('ip').$webroot.'service/ipxe/'.$initrd;
 				}
-
 			}
-			else if ($Host->get('kernel'))
-				$bzImage = $Host->get('kernel');
 		}
+		// Sets the key sequence.  Only used if the hidden menu option is selected.
 		$keySequence = $this->FOGCore->getSetting('FOG_KEY_SEQUENCE');
 		if ($keySequence)
 			$this->KS = new KeySequence($keySequence);
+		// menu Access sets if the menu is displayed.  Menu access is a url get variable if a user has specified hidden menu it will override if menuAccess is set.
 		if (!$_REQUEST['menuAccess'])
 			$this->hiddenmenu = $this->FOGCore->getSetting('FOG_PXE_MENU_HIDDEN');
+		// Generate the URL to boot from.
 		$this->booturl = "http://${webserver}${webroot}service";
+		// Store the host call into class global.
 		$this->Host = $Host;
-		$this->pxemenu = array(
-			'fog.local' => 'Boot from hard disk',
-			'fog.memtest' => 'Run Memtest86+',
-			'fog.reginput' => 'Perform Full Host Registration and Inventory',
-			'fog.keyreg' => 'Update Product Key',
-			'fog.reg' => 'Quick Registration and Inventory',
-			'fog.quickimage' => 'Quick Image',
-			'fog.quickdel' => 'Quick Host Deletion',
-			'fog.sysinfo' => 'Client System Information (Compatibility)',
-			'fog.debug' => 'Debug Mode',
-		);
-		$CaponePlugInst = current($this->FOGCore->getClass('PluginManager')->find(array('name' => 'capone','state' => 1,'installed' => 1)));
+		// Capone menu setup.
+		$CaponePlugInst = current($this->getClass('PluginManager')->find(array('name' => 'capone','state' => 1,'installed' => 1)));
 		$DMISet = $CaponePlugInst ? $this->FOGCore->getSetting('FOG_PLUGIN_CAPONE_DMI') : false;
-		if ($CaponePlugInst && $DMISet)
-			$this->pxemenu['fog.capone'] = 'Capone Deploy';
+		// If it is installed store the needed elements into variables.
 		if ($CaponePlugInst)
 		{
 			$this->storage = $StorageNode->get('ip');
 			$this->path = $StorageNode->get('path');
 			$this->shutdown = $this->FOGCore->getSetting('FOG_PLUGIN_CAPONE_SHUTDOWN');
 		}
-		$Advanced = $this->FOGCore->getSetting('FOG_PXE_ADVANCED');
-		if ($Advanced)
-			$this->pxemenu['fog.advanced'] = 'Advanced Menu';
+		// Create menu item if not exists and Capone is installed as well as the DMI is specified.
+		if ($CaponePlugInst && $DMISet)
+		{
+			// Check for fog.capone if the pxe menu entry exists.
+			$PXEMenuItem = current($this->getClass('PXEMenuOptionsManager')->find(array('name' => 'fog.capone')));
+			// If it does exist, generate the updated arguments for each call.
+			if ($PXEMenuItem && $PXEMenuItem->isValid())
+				$PXEMenuItem->set('args',"mode=capone shutdown=$this->shutdown storage=$this->storage:$this->path");
+			// If it does not exist, create the menu entry.
+			else
+			{
+				$PXEMenuItem = new PXEMenuOptions(array(
+					'name' => 'fog.capone',
+					'description' => 'Capone Deploy',
+					'args' => "mode=capone shutdown=$this->shutdown storage=$this->storage:$this->path",
+					'params' => null,
+					'default' => '0',
+					'regMenu' => '2',
+				));
+			}
+			$PXEMenuItem->save();
+		}
+		// Specify the default calls.
 		$this->memdisk = "kernel $memdisk";
 		$this->memtest = "initrd $memtest";
-		$this->kernel = "kernel $bzImage initrd=$imagefile root=/dev/ram0 rw ramdisk_size=$ramsize ip=dhcp dns=$dns keymap=$keymap web=${webserver}${webroot} consoleblank=0";
-		$this->initrd = "imgfetch $imagefile\n";
-		$this->defaultChoice = "choose --default fog.local --timeout $timeout target && goto \${target}\n";
+		$this->kernel = "kernel $bzImage initrd=$initrd root=/dev/ram0 rw ramdisk_size=$ramsize keymap=$keymap web=${webserver}${webroot} consoleblank=0";
+		$this->initrd = "imgfetch $imagefile";
+		// Set the default line based on all the menu entries and only the one with the default set.
+		$defMenuItem = current($this->getClass('PXEMenuOptionsManager')->find(array('default' => 1)));
+		$this->defaultChoice = "choose --default ".($defMenuItem && $defMenuItem->isValid() ? $defMenuItem->get('name') : 'fog.local')." --timeout $timeout target && goto \${target}";
 		if ($_REQUEST['username'] && $_REQUEST['password'])
 			$this->verifyCreds();
 		else if ($_REQUEST['delconf'])
 			$this->delHost();
 		else if ($_REQUEST['key'])
 			$this->keyset();
+		else if ($_REQUEST['sessname'])
+			$this->sesscheck();
+		else if ($_REQUEST['aprvconf'])
+			$this->approveHost();
 		else if (!$Host || !$Host->isValid())
 			$this->printDefault();
 		else
@@ -172,40 +174,46 @@ class BootMenu extends FOGBase
 		// any string for username and password would show the menu, even if it was hidden
 	    if (!$this->hiddenmenu || $shortCircuit)
 		{
-    		print "#!ipxe\n";
-			print "cpuid --ext 29 && set arch x86_64 || set arch i386\n";
-			print "params\n";
-			print "param mac0 \${net0/mac}\n";
-			print "param arch \${arch}\n";
-			print "param menuAccess 1\n";
-			print "param debug ".($debug ? "1\n" : "0\n");
-			print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-			print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-			print ":bootme\n";
-	    	print "chain -ar $this->booturl/ipxe/boot.php##params\n";
+    		$Send['chainnohide'] = array(
+				"#!ipxe",
+				"cpuid --ext 29 && set arch x86_64 || set arch i386",
+				"params",
+				"param mac0 \${net0/mac}",
+				"param arch \${arch}",
+				"param menuAccess 1",
+				"param debug ".($debug ? 1 : 0),
+				"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+				"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+				":bootme",
+	    		"chain -ar $this->booturl/ipxe/boot.php##params",
+			);
 	    } 
 	    else
 	    {
-	        print "prompt --key ".($this->KS && $this->KS->isValid() ? $this->KS->get('ascii') : '0x1b')." --timeout $this->timeout Booting... (Press ".($this->KS && $this->KS->isValid() ?  $this->KS->get('name') : 'Escape')." to access the menu) && goto menuAccess || $this->bootexittype\n";
-			print ":menuAccess\n";
-			print "login\n";
-			print "params\n";
-			print "param mac0 \${net0/mac}\n";
-			print "param arch \${arch}\n";
-			print "param username \${username}\n";
-			print "param password \${password}\n";
-			print "param menuaccess 1\n";
-			print "param debug ".($debug ? "1\n" : "0\n");
-			print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-			print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-			print ":bootme\n";
-			print "chain -ar $this->booturl/ipxe/boot.php##params\n";
+	        $Send['chainhide'] = array(
+				"#!ipxe",
+				"prompt --key ".($this->KS && $this->KS->isValid() ? $this->KS->get('ascii') : '0x1b')." --timeout $this->timeout Booting... (Press ".($this->KS && $this->KS->isValid() ?  $this->KS->get('name') : 'Escape')." to access the menu) && goto menuAccess || $this->bootexittype",
+				":menuAccess",
+				"login",
+				"params",
+				"param mac0 \${net0/mac}",
+				"param arch \${arch}",
+				"param username \${username}",
+				"param password \${password}",
+				"param menuaccess 1",
+				"param debug ".($debug ? 1 : 0),
+				"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+				"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+				":bootme",
+				"chain -ar $this->booturl/ipxe/boot.php##params",
+			);
 	    }
+		$this->parseMe($Send);
 	}
 	/**
 	* delHost()
 	* Deletes the host from the system.
-	* If it failes will return that it failed.
+	* If it fails will return that it failed.
 	* Each interval sends back to chainBoot()
 	* @return void
 	*/
@@ -213,18 +221,44 @@ class BootMenu extends FOGBase
 	{
 		if($this->Host->destroy())
 		{
-			print "#!ipxe\n";
-			print "echo Host deleted successfully\n";
-			print "sleep 3\n";
-			$this->chainBoot();
+			$Send['delsuccess'] = array(
+				"#!ipxe",
+				"echo Host deleted successfully",
+				"sleep 3"
+			);
 		}
 		else
 		{
-			print "#!ipxe\n";
-			print "echo Failed to destroy Host!\n";
-			print "sleep 3\n";
-			$this->chainBoot();
+			$Send['delfail'] = array(
+				"#!ipxe",
+				"echo Failed to destroy Host!",
+				"sleep 3",
+			);
 		}
+		$this->parseMe($Send);
+		$this->chainBoot();
+	}
+	private function approveHost()
+	{
+		if ($this->Host->set('pending',null)->save())
+		{
+			$Send['approvesuccess'] = array(
+				"#!ipxe",
+				"echo Host approved successfully",
+				"sleep 3"
+			);
+			$this->Host->createImagePackage(10,'Inventory',false,false,false,false,$_REQUEST['username']);
+		}
+		else
+		{
+			$Send['approvefail'] = array(
+				"#!ipxe",
+				"echo Host approval failed",
+				"sleep 3"
+			);
+		}
+		$this->parseMe($Send);
+		$this->chainBoot();
 	}
 	/**
 	* printTasking()
@@ -243,10 +277,13 @@ class BootMenu extends FOGBase
                 $kernelArgs[] = (is_array($arg) ? $arg['value'] : $arg);
         }   
         $kernelArgs = array_unique($kernelArgs);
-		print "#!ipxe\n";
-        print "$this->kernel loglevel=4 ".implode(' ',(array)$kernelArgs)."\n";
-        print "$this->initrd";
-        print "boot";
+		$Send['task'] = array(
+			"#!ipxe",
+        	"$this->kernel loglevel=4 ".implode(' ',(array)$kernelArgs),
+        	"$this->initrd",
+        	"boot",
+		);
+		$this->parseMe($Send);
 	}
 	/**
 	* delConf()
@@ -255,17 +292,42 @@ class BootMenu extends FOGBase
 	*/
 	public function delConf()
 	{
-		print "#!ipxe\n";
-		print "cpuid --ext 29 && set arch x86_64 || set arch i386\n";
-		print "prompt --key y Would you like to delete this host? (y/N): &&\n";
-		print "params\n";
-		print "param mac0 \${net0/mac}\n";
-		print "param arch \${arch}\n";
-		print "param delconf 1\n";
-		print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-		print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-		print ":bootme\n";
-		print "chain -ar $this->booturl/ipxe/boot.php##params";
+		$Send['delconfirm'] = array(
+			"#!ipxe",
+			"cpuid --ext 29 && set arch x86_64 || set arch i386",
+			"prompt --key y Would you like to delete this host? (y/N): &&",
+			"params",
+			"param mac0 \${net0/mac}",
+			"param arch \${arch}",
+			"param delconf 1",
+			"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+			"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+			":bootme",
+			"chain -ar $this->booturl/ipxe/boot.php##params",
+		);
+		$this->parseMe($Send);
+	}
+	/**
+	* aprvConf()
+	* If you're trying to approve the host, request confirmation.
+	* @return void
+	*/
+	public function aprvConf()
+	{
+		$Send['aprvconfirm'] = array(
+			"#!ipxe",
+			"cpuid --ext 29 && set arch x86_64 || set arch i386",
+			"prompt --key y Would you like to approve this host? (y/N): &&",
+			"params",
+			"param mac0 \${net0/mac}",
+			"param arch \${arch}",
+			"param aprvconf 1",
+			"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+			"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+			":bootme",
+			"chain -ar $this->booturl/ipxe/boot.php##params",
+		);
+		$this->parseMe($Send);
 	}
 	/**
 	* keyreg()
@@ -274,31 +336,115 @@ class BootMenu extends FOGBase
 	*/
 	public function keyreg()
 	{
-		print "#!ipxe\n";
-		print "cpuid --ext 29 && set arch x86_64 || set arch i386\n";
-		print "echo -n Please enter the product key>\n";
-		print "read key\n";
-		print "params\n";
-		print "param mac0 \${net0/mac}\n";
-		print "param arch \${arch}\n";
-		print "param key \${key}\n";
-		print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-		print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-		print ":bootme\n";
-		print "chain -ar $this->booturl/ipxe/boot.php##params";
+		$Send['keyreg'] = array(
+			"#!ipxe",
+			"cpuid --ext 29 && set arch x86_64 || set arch i386",
+			"echo -n Please enter the product key>",
+			"read key",
+			"params",
+			"param mac0 \${net0/mac}",
+			"param arch \${arch}",
+			"param key \${key}",
+			"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+			"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+			":bootme",
+			"chain -ar $this->booturl/ipxe/boot.php##params",
+		);
+		$this->parseMe($Send);
 	}
 	/**
+	* sesscheck()
+	* Verifys the name
+	* @return void
+	*/
+	public function sesscheck()
+	{
+		$sesscount = current($this->getClass('MulticastSessionsManager')->find(array('name' => $_REQUEST['sessname'])));
+		if (!$sesscount || !$sesscount->isValid())
+		{
+			$Send['checksession'] = array(
+				"#!ipxe",
+				"echo no session found with that name.",
+				"sleep 3",
+				"cpuid --ext 29 && set arch x86_64 || set arch i386",
+				"params",
+				"param mac0 \${net0/mac}",
+				"param arch \${arch}",
+				"param sessionjoin 1",
+				"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+				"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+				":bootme",
+				"chain -ar $this->booturl/ipxe/boot.php##params",
+			);
+		}
+		else
+			$this->multijoin($sesscount->get('id'));
+	}
+
+	/**
+	* sessjoin()
+	* Gets the relevant information and passes when verified.
+	* @return void
+	*/
+	public function sessjoin()
+	{
+		$Send['joinsession'] = array(
+			"#!ipxe",
+			"cpuid --ext 29 && set arch x86_64 || set arch i386",
+			"echo -n Please enter the session name to join>",
+			"read sessname",
+			"params",
+			"param mac0 \${net0/mac}",
+			"param arch \${arch}",
+			"param sessname \${sessname}",
+			"isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme",
+			"isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme",
+			":bootme",
+			"chain -ar $this->booturl/ipxe/boot.php##params",
+		);
+		$this->parseMe($Send);
+	}
+	/**
+	* multijoin()
+	* Joins the host to an already generated multicast session
+	* @return void
+	*/
+	public function multijoin($msid)
+	{
+		$MultiSess = new MulticastSessions($msid);
+		// Create the host task
+		if($this->Host->createImagePackage(8,$MultiSess->get('name'),false,false,true,false,$_REQUEST['username']))
+			$this->chainBoot(false,true);
+	}
+	/**
+	* keyset()
+	* Set's the product key using the ipxe menu.
+	* @return void
 	*/
 	public function keyset()
 	{
 		$this->Host->set('productKey',base64_encode($_REQUEST['key']));
 		if ($this->Host->save())
 		{
-			print "#!ipxe\n";
-			print "echo Successfully changed key\n";
-			print "sleep 3\n";
+			$Send['keychangesuccess'] = array(
+				"#!ipxe",
+				"echo Successfully changed key",
+				"sleep 3",
+			);
+			$this->parseMe($Send);
 			$this->chainBoot();
 		}
+	}
+	/**
+	* parseMe($Send)
+	* @param $Send the data to be sent.
+	* @return void
+	*/
+	private function parseMe($Send)
+	{
+		$this->HookManager->processEvent('IPXE_EDIT',array('ipxe' => &$Send));
+		foreach($Send AS $ipxe => $val)
+			print implode("\n",$val)."\n";
 	}
 	/**
 	* advLogin()
@@ -307,8 +453,11 @@ class BootMenu extends FOGBase
 	*/
 	public function advLogin()
 	{
-		print "#!ipxe\n";
-		print "chain -ar $this->booturl/ipxe/advanced.php\n";
+		$Send['advancedlogin'] = array(
+			"#!ipxe",
+			"chain -ar $this->booturl/ipxe/advanced.php",
+		);
+		$this->parseMe($Send);
 	}
 	/**
 	* debugAccess()
@@ -317,10 +466,13 @@ class BootMenu extends FOGBase
 	*/
 	private function debugAccess()
 	{
-		print "#!ipxe\n";
-		print "$this->kernel mode=onlydebug\n";
-		print "$this->initrd";
-		print "boot\n";
+		$Send['debugaccess'] = array(
+			"#!ipxe",
+			"$this->kernel mode=onlydebug",
+			"$this->initrd",
+			"boot",
+		);
+		$this->parseMe($Send);
 	}
 	/**
 	* verifyCreds()
@@ -341,6 +493,10 @@ class BootMenu extends FOGBase
 				$this->keyreg();
 			else if ($_REQUEST['qihost'])
 				$this->setTasking();
+			else if ($_REQUEST['sessionJoin'])
+				$this->sessjoin();
+			else if ($_REQUEST['approveHost'])
+				$this->aprvConf();
 			else if ($_REQUEST['menuaccess'])
 			{
 				unset($this->hiddenmenu);
@@ -355,9 +511,12 @@ class BootMenu extends FOGBase
 		}
 		else
 		{
-			print "#!ipxe\n";
-			print "echo Invalid login!\n";
-			print "sleep 3\n";
+			$Send['invalidlogin'] = array(
+				"#!ipxe",
+				"echo Invalid login!",
+				"sleep 3",
+			);
+			$this->parseMe($Send);
 			$this->chainBoot();
 		}
 	}
@@ -378,8 +537,11 @@ class BootMenu extends FOGBase
 	*/
 	public function noMenu()
 	{
-		print "#!ipxe\n";
-		print "$this->bootexittype\n";
+		$Send['nomenu'] = array(
+			"#!ipxe",
+			"$this->bootexittype",
+		);
+		$this->parseMe($Send);
 	}
 	/**
 	* getTasking()
@@ -391,7 +553,7 @@ class BootMenu extends FOGBase
 	public function getTasking()
 	{
 		$Image = $this->Host->getImage();
-		$Task = current($this->Host->get('task'));
+		$Task = $this->Host->get('task');
 		if (!$Task->isValid())
 		{
 			if ($this->FOGCore->getSetting('FOG_NO_MENU'))
@@ -402,8 +564,8 @@ class BootMenu extends FOGBase
 		else
 		{
 			$TaskType = new TaskType($Task->get('typeID'));
-			$imagingTasks = array(1,2,8,15,16,17);
-			$LA = current($this->FOGCore->getClass('LocationAssociationManager')->find(array('hostID' => $this->Host->get('id'))));
+			$imagingTasks = array(1,2,8,15,16,17,24);
+			$LA = current($this->getClass('LocationAssociationManager')->find(array('hostID' => $this->Host->get('id'))));
 			if ($LA)
 				$Location = new Location($LA->get('locationID'));
 			if ($Location && $Location->isValid())
@@ -416,20 +578,25 @@ class BootMenu extends FOGBase
 				$StorageNode = new StorageNode($Location->get('storageNodeID'));
 			if ($TaskType->isUpload() || $TaskType->isMulticast())
 				$StorageNode = $StorageGroup->getMasterStorageNode();
-			$mac = $_REQUEST['mac'];
+			if ($this->Host && $this->Host->isValid())
+				$mac = $this->Host->get('mac');
+			else
+				$mac = $_REQUEST['mac'];
 			$osid = $Image->get('osID');
 			$storage = in_array($TaskType->get('id'),$imagingTasks) ? sprintf('%s:/%s/%s',trim($StorageNode->get('ip')),trim($StorageNode->get('path'),'/'),($TaskType->isUpload() ? 'dev/' : '')) : null;
+			$clamav = in_array($TaskType->get('id'),array(21,22)) ? sprintf('%s:%s',trim($StorageNode->get('ip')),'/opt/fog/clamav') : null;
 			$storageip = in_array($TaskType->get('id'),$imagingTasks) ? $StorageNode->get('ip') : null;
 			$img = in_array($TaskType->get('id'),$imagingTasks) ? $Image->get('path') : null;
 			$imgFormat = in_array($TaskType->get('id'),$imagingTasks) ? $Image->get('format') : null;
 			$imgType = in_array($TaskType->get('id'),$imagingTasks) ? $Image->getImageType()->get('type') : null;
+			$imgPartitionType = in_array($TaskType->get('id'),$imagingTasks) ? $Image->getImagePartitionType()->get('type') : null;
 			$imgid = in_array($TaskType->get('id'),$imagingTasks) ? $Image->get('id') : null;
 			$ftp = $this->FOGCore->resolveHostname($this->FOGCore->getSetting('FOG_TFTP_HOST'));
 			$chkdsk = $this->FOGCore->getSetting('FOG_DISABLE_CHKDSK') == 1 ? 0 : 1;
 			$PIGZ_COMP = $this->FOGCore->getSetting('FOG_PIGZ_COMP');
 			if ($TaskType->isMulticast())
 			{
-				$MulticastSessionAssoc = current($this->FOGCore->getClass('MulticastSessionsAssociationManager')->find(array('taskID' => $Task->get('id'))));
+				$MulticastSessionAssoc = current($this->getClass('MulticastSessionsAssociationManager')->find(array('taskID' => $Task->get('id'))));
 				$MulticastSession = new MulticastSessions($MulticastSessionAssoc->get('msID'));
 			}
 			$kernelArgsArray = array(
@@ -444,6 +611,10 @@ class BootMenu extends FOGBase
 				"irqpoll",
 				"hostname=".$this->Host->get('name'),
 				array(
+					'value' => "clamav=$clamav",
+					'active' => in_array($TaskType->get('id'),array(21,22)),
+				),
+				array(
 					'value' => "chkdsk=$chkdsk",
 					'active' => in_array($TaskType->get('id'),$imagingTasks),
 				),
@@ -453,6 +624,10 @@ class BootMenu extends FOGBase
 				),
 				array(
 					'value' => "imgType=$imgType",
+					'active' => in_array($TaskType->get('id'),$imagingTasks),
+				),
+				array(
+					'value' => "imgPartitionType=$imgPartitionType",
 					'active' => in_array($TaskType->get('id'),$imagingTasks),
 				),
 				array(
@@ -527,6 +702,10 @@ class BootMenu extends FOGBase
 					'value' => 'miningpath=' . $this->FOGCore->getSetting('FOG_MINING_PACKAGE_PATH'),
 					'active' => $this->FOGCore->getSetting('FOG_MINING_ENABLE'),
 				),
+				array(
+					'value' => 'isdebug=yes',
+					'active' => $Task->get('isDebug'),
+				),
 				$TaskType->get('kernelArgs'),
 				$this->FOGCore->getSetting('FOG_KERNEL_ARGS'),
 				$this->Host->get('kernelArgs'),
@@ -535,10 +714,13 @@ class BootMenu extends FOGBase
 				$this->printDefault();
 			else if ($Task->get('typeID') == 4)
 			{
-				print "#!ipxe\n";
-				print "$this->memdisk iso raw\n";
-				print "$this->memtest\n";
-				print "boot";
+				$Send['memtest'] = array(
+					"#!ipxe",
+					"$this->memdisk iso raw",
+					"$this->memtest",
+					"boot",
+				);
+				$this->parseMe($Send);
 			}
 			else
 				$this->printTasking($kernelArgsArray);
@@ -549,125 +731,61 @@ class BootMenu extends FOGBase
 	* @param $option the menu option
 	* @param $desc the description of the menu item.
 	* Prints the menu items.
-	* @return void
+	* @return the string as passed.
 	*/
 	private function menuItem($option, $desc)
 	{
-		print "item $option $desc\n";
+		return array("item ".$option->get('name')." ".$option->get('description'));
 	}
 	/**
 	* menuOpt()
 	* Prints the actual menu related items for booting.
 	* @param $option the related menu option
-	* @param $type the type of menu information.
-	* @return void
+	* @param $type the type of menu information
+	* @return $Send sends the data for the menu item.
 	*/
 	private function menuOpt($option,$type)
 	{
-		if ($option == 'fog.local')
+		if ($option->get('id') == 1)
 		{
-			print ":$option\n";
-			print "$this->bootexittype || goto MENU\n";
+			$Send = array(
+				":".$option->get('name'),
+				"$this->bootexittype || goto MENU",
+			);
 		}
-		else if ($option == 'fog.memtest')
+		else if ($option->get('id') == 2)
 		{
-			print ":$option\n";
-			print "$this->memdisk iso raw\n";
-			print "$this->memtest\n";
-			print "boot || goto MENU\n";
+			$Send = array(
+				":".$option->get('name'),
+				"$this->memdisk iso raw",
+				"$this->memtest",
+				"boot || goto MENU",
+			);
 		}
-		else if ($option == 'fog.quickimage')
+		else if ($option->get('id') == 11)
 		{
-			print ":$option\n";
-			print "login\n";
-			print "params\n";
-			print "param mac0 \${net0/mac}\n";
-			print "param arch \${arch}\n";
-			print "param username \${username}\n";
-			print "param password \${password}\n";
-			print "param qihost 1\n";
-			print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-			print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-			print ":bootme\n";
-			print "chain -ar $this->booturl/ipxe/boot.php##params ||\n";
-			print "goto MENU\n";
+			$Send = array(
+				":".$option->get('name'),
+				"chain -ar $this->booturl/ipxe/advanced.php || goto MENU",
+			);
 		}
-		else if ($option == 'fog.quickdel')
+		else if ($option->get('params'))
 		{
-			print ":$option\n";
-			print "login\n";
-			print "params\n";
-			print "param mac0 \${net0/mac}\n";
-			print "param arch \${arch}\n";
-			print "param username \${username}\n";
-			print "param password \${password}\n";
-			print "param delhost 1\n";
-			print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-			print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-			print ":bootme\n";
-			print "chain -ar $this->booturl/ipxe/boot.php##params ||\n";
-			print "goto MENU\n";
-		}
-		else if ($option == 'fog.keyreg')
-		{
-			print ":$option\n";
-			print "login\n";
-			print "params\n";
-			print "param mac0 \${net0/mac}\n";
-			print "param arch \${arch}\n";
-			print "param username \${username}\n";
-			print "param password \${password}\n";
-			print "param keyreg 1\n";
-			print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-			print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-			print ":bootme\n";
-			print "chain -ar $this->booturl/ipxe/boot.php##params ||\n";
-			print "goto MENU\n";
-
-		}
-		else if ($option == 'fog.advanced')
-		{
-			print ":$option\n";
-			if ($this->FOGCore->getSetting('FOG_ADVANCED_MENU_LOGIN'))
-			{
-				print "login\n";
-				print "params\n";
-				print "param mac0 \${net0/mac}\n";
-				print "param arch \${arch}\n";
-				print "param username \${username}\n";
-				print "param password \${password}\n";
-				print "param advLog  1\n";
-				print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-				print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-				print ":bootme\n";
-				print "chain -ar $this->booturl/ipxe/boot.php##params ||\n";
-				print "goto MENU\n";
-			}
-			else
-				print "chain -ar $this->booturl/ipxe/advanced.php || goto MENU\n";
-		}
-		else if ($option == 'fog.debug') 
-		{
-			print ":$option\n";
-			print "login\n";
-			print "params\n";
-			print "param mac0 \${net0/mac}\n";
-			print "param arch \${arch}\n";
-			print "param username \${username}\n";
-			print "param password \${password}\n";
-			print "param debugAccess 1\n";
-			print "isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme\n";
-			print "isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme\n";
-			print ":bootme\n";
-			print "chain -ar $this->booturl/ipxe/boot.php##params ||\n";
+			$Send = array(
+				':'.$option->get('name'),
+				$option->get('params'),
+			);
 		}
 		else
 		{
-			print ":$option\n";
-			print "$this->kernel loglevel=4 $type\n";
-			print "$this->initrd";
-			print "boot || goto MENU\n";
+			$Send = array(
+				":$option",
+				"$this->kernel loglevel=4 $type",
+				"$this->initrd",
+				"boot || goto MENU",
+			);
 		}
+		return $Send;
 	}
 	/**
 	* printDefault()
@@ -677,79 +795,67 @@ class BootMenu extends FOGBase
 	*/
 	public function printDefault()
 	{
-		print "#!ipxe\n";
-		print "cpuid --ext 29 && set arch x86_64 || set arch i386\n";
-		print "colour --rgb 0xff6600 2\n";
-		print "cpair --foreground 7 --background 2 2\n";
-		print "console --picture $this->booturl/ipxe/bg.png --left 100 --right 80\n";
+		// Gets all the database menu items.
+		$Menus = $this->getClass('PXEMenuOptionsManager')->find('','','id');
+		$Send['head'] = array(
+			"#!ipxe",
+			"cpuid --ext 29 && set arch x86_64 || set arch i386",
+			"goto get_console",
+			":console_set",
+			"colour --rgb 0xff6600 2",
+			"cpair --foreground 7 --background 2 2",
+			"goto MENU",
+			":alt_console",
+			"cpair --background 0 1 && cpair --background 1 2",
+			"goto MENU",
+			":get_console",
+			"console --picture $this->booturl/ipxe/bg.png --left 100 --right 80 && goto console_set || goto alt_console",
+		);
 		if (!$this->hiddenmenu)
 		{
 		    $showDebug = $_REQUEST["debug"] === "1";
-			print ":MENU\n";
-			print "menu\n";
-			// Checks if the host is registered or not.
-			// Displays the Host name if it is, otherwise
-			// Tells the user it's not registered.
-			if ($this->Host && $this->Host->isValid())
+			$Send['menustart'] = array(
+				":MENU",
+				"menu",
+				"colour --rgb ".($this->Host && $this->Host->isValid() ? "0x00ff00" : "0xff0000")." 0",
+				"cpair --foreground 0 3",
+				"item --gap Host is ".($this->Host && $this->Host->isValid() ? ($this->Host->get('pending') ? 'pending ' : '')."registered as ".$this->Host->get('name') : "NOT registered!"),
+				"item --gap -- -------------------------------------",
+			);
+			$Advanced = $this->FOGCore->getSetting('FOG_PXE_ADVANCED');
+			$AdvLogin = $this->FOGCore->getSetting('FOG_ADVANCED_MENU_LOGIN');
+			$ArrayOfStuff = array(($this->Host && $this->Host->isValid() ? ($this->Host->get('pending') ? 6 : 1) : 0),2);
+			if ($showDebug)
+				array_push($ArrayOfStuff,3);
+			if ($Advanced)
+				array_push($ArrayOfStuff,($AdvLogin ? 5 : 4));
+			foreach($Menus AS $Menu)
 			{
-				print "colour --rgb 0x00ff00 0\n";
-				print "cpair --foreground 0 3\n";
-				print "item --gap Host is registered as ".$this->Host->get('name')."\n";
-				print "item --gap -- -------------------------------------\n";
+				if (in_array($Menu->get('regMenu'),$ArrayOfStuff))
+					$Send['item-'.$Menu->get('name')] = $this->menuItem($Menu, $desc);
 			}
-			else
+			$Send['default'] = array(
+				"$this->defaultChoice",
+			);
+			foreach($Menus AS $Menu)
 			{
-				print "colour --rgb 0xff0000 0\n";
-				print "cpair --foreground 0 3\n";
-				print "item --gap Host is NOT registered!\n";
-				print "item --gap -- -------------------------------------\n";
+				if (in_array($Menu->get('regMenu'),$ArrayOfStuff))
+					$Send['choice-'.$Menu->get('name')] = $Menu->get('args') ? $this->menuOpt($Menu,$Menu->get('args')) : $this->menuOpt($Menu,true);
 			}
-			foreach($this->pxemenu AS $option => $desc)
-			{
-				if (!$this->Host || !$this->Host->isValid())
-				{
-					if ($option != 'fog.quickdel' && $option != 'fog.quickimage' && ( $showDebug || $option != 'fog.debug' ) && $option != 'fog.keyreg')
-						$this->menuItem($option, $desc);
-				}
-				else 
-				{
-					if ($option != 'fog.reg' && $option != 'fog.reginput' && ( $showDebug || $option != 'fog.debug' ))
-						$this->menuItem($option, $desc);
-				}
-			}
-			print "$this->defaultChoice";
-			foreach($this->pxemenu AS $option => $desc)
-			{
-				if (!$this->Host || !$this->Host->isValid())
-				{
-					if ($option == 'fog.reg')
-						$this->menuOpt($option, "mode=autoreg");
-					else if ($option == 'fog.reginput')
-						$this->menuOpt($option, "mode=manreg");
-					else if ($option == 'fog.sysinfo')
-						$this->menuOpt($option, "mode=sysinfo");
-					else if ($option == 'fog.debug' && $showDebug)
-							$this->menuOpt($option, "mode=onlydebug");
-					else if ($option == 'fog.capone')
-						$this->menuOpt($option, "mode=capone shutdown=$this->shutdown storage=$this->storage:$this->path");
-					else if ($option == 'fog.local' || $option == 'fog.memtest' || $option == 'fog.advanced')
-						$this->menuOpt($option, true);
-				}
-				else
-				{
-					if ($option == 'fog.sysinfo')
-						$this->menuOpt($option, "mode=sysinfo");
-					else if ($option == 'fog.debug' && $showDebug)
-						$this->menuOpt($option, "mode=onlydebug");
-					else if ($option == 'fog.capone')
-						$this->menuOpt($option, "mode=capone shutdown=$this->shutdown storage=$this->storage:$this->path");
-					else if ($option == 'fog.local' || $option == 'fog.memtest' || $option == 'fog.advanced' || $option == 'fog.quickdel' || $option == 'fog.quickimage' || 'fog.keyreg')
-						$this->menuOpt($option, true);
-				}
-			}
-			print "autoboot";
+			$Send['bootme'] = array(
+				":bootme",
+				"chain -ar $this->booturl/ipxe/boot.php##params ||",
+				"goto MENU",
+				"autoboot",
+			);
+			$this->parseMe($Send);
 		}
 		else
-			$this->chainBoot();
+			$this->chainBoot(true);
 	}
 }
+/* Local Variables: */
+/* indent-tabs-mode: t */
+/* c-basic-offset: 4 */
+/* tab-width: 4 */
+/* End: */

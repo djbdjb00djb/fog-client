@@ -1401,6 +1401,240 @@ $databaseSchema[] = array(
 $databaseSchema[] = array(
 	"INSERT INTO `" . DATABASE_NAME . "`.`os` (`osID`, `osName`, `osDescription`) VALUES ('8', 'Apple Mac OS', '')",
 );
+// 115
+$databaseSchema[] = array(
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_TASK_FORCE_REBOOT','This setting enables or disables the Force reboot of tasks.  This only affects if users are logged in. If users are logged in, the host will not reboot if this is disabled.','0','FOG Service - Task Reboot')",
+);
+// 116
+$databaseSchema[] = array(
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_SERVICE_CHECKIN_TIME','This setting returns the client service checkin times to the server.','60','FOG Service')",
+	 "UPDATE `". DATABASE_NAME ."`.modules SET short_name='snapinclient' WHERE short_name='snapin'",
+);
+// 117
+$databaseSchema[] = array(
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_UDPCAST_MAXWAIT','This setting sets the max time to wait for other clients before starting the session in minutes.','10','Multicast Settings')",
+);
+// 118
+$databaseSchema[] = array(
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_AES_ENCRYPT','This setting turns on or off the FOG Client on the client machine to send the data encrypted with AES.  If you select this and you do not have the new FOG Client installed on your system, the old client will be broken.  This will only be relevant if you have the FOG_NEW_CLIENT enabled as well.','0','FOG Service')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_NEW_CLIENT','This setting turns on or off the new client. If this is selected, and the clients do not have the new client installed, things should still work unless you also check the FOG_AES_ENCRYPT box.','0','FOG Service')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_CLIENT_MAXSIZE','This setting specifies the MAX size of the fog.log before it rolls over. It will only work for new clients.','204800000','FOG Service')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_AES_PASS_ENCRYPT_KEY','This setting just stores the AES Encryption Key. It will only work for new clients.  This is the key used for encrypting all traffic back and forth between the client and server','7NFJUuQTYLZIoea32DsP9V6f0tbWnzMy','FOG Service')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_AES_ADPASS_ENCRYPT_KEY','This setting just stores the AES Encryption ADPass encryption key. It will only work for new clients.  This is the key used for encrypting ADPass in AES format. If FOG_NEW_CLIENT is selected, to set the ADPass you simply type the plain text password and click update.  It will automatically encrypt and store the encrypted password in the database for you.','jPlUQRw5vLsrz8I1TuZdWDSiMFqXHtcm','FOG Service')",
+);
+// 119
+$databaseSchema[] = array(
+	"ALTER TABLE `" . DATABASE_NAME . "`.`modules`
+		ADD COLUMN `default` INT DEFAULT 1 NOT NULL AFTER `description`",
+);
+// 120
+$databaseSchema[] = array(
+	"CREATE TABLE IF NOT EXISTS `" . DATABASE_NAME . "`.`imagePartitionTypes` (
+	  `imagePartitionTypeID` mediumint(9) NOT NULL auto_increment,
+	  `imagePartitionTypeName` varchar(100) NOT NULL,
+	  `imagePartitionTypeValue` varchar(10) NOT NULL,
+	  PRIMARY KEY  (`imagePartitionTypeID`)
+	) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=5 ;",
+	"INSERT INTO `" . DATABASE_NAME . "`.`imagePartitionTypes` (`imagePartitionTypeID`, `imagePartitionTypeName`, `imagePartitionTypeValue`) VALUES
+	(1, 'Everything', 'all'),
+	(2, 'Partition Table and MBR only', 'mbr'),
+	(3, 'Partition 1 only', '1'),
+	(4, 'Partition 2 only', '2'),
+	(5, 'Partition 3 only', '3'),
+	(6, 'Partition 4 only', '4'),
+	(7, 'Partition 5 only', '5'),
+	(8, 'Partition 6 only', '6'),
+	(9, 'Partition 7 only', '7'),
+	(10, 'Partition 8 only', '8'),
+	(11, 'Partition 9 only', '9'),
+	(12, 'Partition 10 only', '10');",
+);
+// 121
+$databaseSchema[] = array(
+	"ALTER TABLE `" . DATABASE_NAME . "`.`images`
+		ADD COLUMN `imagePartitionTypeID` mediumint(9) NOT NULL AFTER `imageTypeID`",
+	"UPDATE `". DATABASE_NAME ."`.images SET imagePartitionTypeID='1'",
+);
+// 122
+$databaseSchema[] = array(
+	"CREATE TABLE IF NOT EXISTS `" . DATABASE_NAME ."`.`pxeMenu` (
+	  `pxeID` mediumint(9) NOT NULL auto_increment,
+	  `pxeName` varchar(100) NOT NULL,
+	  `pxeDesc` longtext  NOT NULL,
+	  `pxeParams` longtext NOT NULL,
+	  `pxeRegOnly` INT DEFAULT 0 NOT NULL,
+	  `pxeArgs` varchar(250) NULL,
+	  `pxeDefault` INT DEFAULT 0 NOT NULL,
+	  PRIMARY KEY  (`pxeID`)
+	) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;",
+	"INSERT INTO `" . DATABASE_NAME ."`.`pxeMenu` (`pxeID`,`pxeName`,`pxeDesc`,`pxeDefault`,`pxeRegOnly`,`pxeArgs`) VALUES
+	(1, 'fog.local', 'Boot from hard disk', '1','2',NULL),
+	(2, 'fog.memtest', 'Run Memtest86+', '0','2',NULL),
+	(3, 'fog.reginput', 'Perform Full Host Registration and Inventory','0','0','mode=manreg'),
+	(4, 'fog.keyreg', 'Update Product Key', '0','1',NULL),
+	(5, 'fog.reg', 'Quick Registration and Inventory', '0','0','mode=autoreg'),
+	(6, 'fog.quickimage', 'Quick Image', '0', '1',NULL),
+	(7, 'fog.multijoin', 'Join Multicast Session', '0','1',NULL),
+	(8, 'fog.quickdel', 'Quick Host Deletion','0','1',NULL),
+	(9, 'fog.sysinfo', 'Client System Information (Compatibility)','0','2','mode=sysinfo'),
+	(10, 'fog.debug', 'Debug Mode','0','3','mode=onlydebug'),
+	(11, 'fog.advanced', 'Advanced Menu','0','4',NULL),
+	(12, 'fog.advancedlogin', 'Advanced Menu','0','5',NULL);",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param qihost 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.quickimage';",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param delhost 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.quickdel';",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param keyreg 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.keyreg';",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param debugAccess 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.debug';",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param sessionJoin 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.multijoin';",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param advLog 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.advancedlogin';",
+);
+// 123
+$databaseSchema[] = array(
+	"CREATE TABLE IF NOT EXISTS `" . DATABASE_NAME ."`.`peer` (
+	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	  `hash` char(40) NOT NULL COMMENT 'peer_id',
+	  `user_agent` varchar(80) DEFAULT NULL,
+	  `ip_address` int(10) unsigned NOT NULL COMMENT 'ip',
+	  `key` char(40) NOT NULL COMMENT 'key',
+	  `port` smallint(5) unsigned NOT NULL COMMENT 'port',
+	  PRIMARY KEY (`id`),
+	  UNIQUE KEY `hash_key` (`hash`,`key`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;",
+	"CREATE TABLE IF NOT EXISTS `" . DATABASE_NAME ."`.`peer_torrent` (
+	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	  `peer_id` int(10) unsigned NOT NULL,
+	  `torrent_id` int(10) unsigned NOT NULL,
+	  `uploaded` bigint(20) unsigned DEFAULT NULL COMMENT 'uploaded',
+	  `downloaded` bigint(20) unsigned DEFAULT NULL COMMENT 'downloaded',
+	  `left` bigint(20) unsigned DEFAULT NULL COMMENT 'left',
+	  `last_updated` datetime NOT NULL,
+	  `stopped` tinyint(1) NOT NULL DEFAULT '0',
+	  PRIMARY KEY (`id`),
+	  UNIQUE KEY `peer_torrent` (`peer_id`,`torrent_id`),
+	  KEY `update_torrent` (`torrent_id`,`stopped`,`last_updated`,`left`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;",
+	"CREATE TABLE IF NOT EXISTS `" . DATABASE_NAME ."`.`torrent` (
+	  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	  `hash` char(40) NOT NULL COMMENT 'info_hash',
+	  PRIMARY KEY (`id`),
+	  UNIQUE KEY `hash` (`hash`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;",
+);
+// 124
+$databaseSchema[] = array(
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_TORRENT_INTERVAL','This setting defines the interval between updates for the tracker. This value should be numeric and is defaulted to 1800 seconds.  The value here is in seconds as well.','1800','FOG Torrent')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_TORRENT_TIMEOUT','This setting defines the grace period between update interval and the client in case something went wrong. Default value is 120.  Value is in seconds.','120','FOG Torrent')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_TORRENT_INTERVAL_MIN','This setting defines the minimum interval value.  If FOG_TORRENT_INTERVAL is less than this number, it will default to this value for the interval plus the timeout. Default value is 60 seconds.  Again, this is in seconds.','60','FOG Torrent')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_TORRENT_PPR','This setting defines the maximum number of hosts to encode.  Default value is 20.','20','FOG Torrent')",
+	"INSERT INTO `" . DATABASE_NAME ."`.globalSettings(settingKey, settingDesc, settingValue, settingCategory)
+	 values('FOG_TORRENTDIR','This setting defines the location for the torrents to transfer over to the client for torrent cast.','/opt/fog/torrents/','FOG Torrent')",
+    "INSERT INTO `" . DATABASE_NAME . "`.`taskTypes` (`ttID`, `ttName`, `ttDescription`, `ttIcon`, `ttKernel`, `ttKernelArgs`, `ttType`, `ttIsAdvanced`, `ttIsAccess`) VALUES
+	(24, 'Torrent-Cast', 'This task will run a download task that will be used to download the image from the peer(s).', 'torrent.png', '', 'mc=bt', 'fog', '1', 'both')",
+);
+// 125
+$databaseSchema[] = array(
+	"UPDATE `" . DATABASE_NAME ."`.`taskTypes` SET ttKernelArgs='mc=bt type=down' WHERE ttID='24';",
+);
+// 126
+$databaseSchema[] = array(
+	"ALTER TABLE `" . DATABASE_NAME . "`.`tasks`
+		ADD COLUMN `taskIsDebug` mediumint(9) NOT NULL AFTER `taskStateID`",
+);
+// 127
+$databaseSchema[] = array(
+	"ALTER TABLE `" . DATABASE_NAME . "`.`images`
+		ADD COLUMN `imageProtect` mediumint(9) NOT NULL AFTER `imagePath`",
+);
+// 128
+$databaseSchema[] = array(
+	"ALTER TABLE `" . DATABASE_NAME . "`.`hosts`
+		ADD COLUMN `hostPending` mediumint(9) NULL",
+);
+// 129
+$databaseSchema[] = array(
+	"INSERT INTO `" . DATABASE_NAME ."`.`pxeMenu` (`pxeID`,`pxeName`,`pxeDesc`,`pxeDefault`,`pxeRegOnly`,`pxeArgs`) VALUES
+	(13, 'fog.approvehost', 'Approve This Host','0','6',NULL);",
+	"UPDATE `". DATABASE_NAME ."`.`pxeMenu` SET `pxeParams`='login
+params
+param mac0 \${net0/mac}
+param arch \${arch}
+param username \${username}
+param password \${password}
+param approveHost 1
+isset \${net1/mac} && param mac1 \${net1/mac} || goto bootme
+isset \${net2/mac} && param mac2 \${net2/mac} || goto bootme' WHERE `pxeName`='fog.approvehost';",
+);
+// 130
+$databaseSchema[] = array(
+	"ALTER TABLE `" . DATABASE_NAME ."`.`hostMAC` ADD COLUMN `hmPrimary` INT DEFAULT 0 NOT NULL",
+	"ALTER TABLE `" . DATABASE_NAME ."`.`hostMAC` ADD COLUMN `hmPending` INT DEFAULT 0 NOT NULL",
+	"ALTER TABLE `" . DATABASE_NAME ."`.`hostMAC` ADD COLUMN `hmIgnoreClient` INT DEFAULT 0 NOT NULL",
+	"ALTER TABLE `" . DATABASE_NAME ."`.`hostMAC` ADD COLUMN `hmIgnoreImaging` INT DEFAULT 0 NOT NULL",
+	"INSERT INTO `" . DATABASE_NAME ."`.`hostMAC` (`hmHostID`,`hmMAC`,`hmIgnoreClient`,`hmIgnoreImaging`,`hmPending`,`hmPrimary`) SELECT `hostID`,`hostMAC`,'0','0','0','1' FROM `".DATABASE_NAME."`.`hosts` WHERE `hosts`.`hostMAC` IS NOT NULL",
+	"INSERT INTO `" . DATABASE_NAME ."`.`hostMAC` (`hmMAC`,`hmHostID`,`hmPending`) SELECT `pmAddress`,`pmHostID`,'1' FROM `".DATABASE_NAME."`.`pendingMACS` WHERE `pmAddress` IS NOT NULL",
+	"ALTER TABLE `" . DATABASE_NAME ."`.`hosts` DROP COLUMN `hostMAC`",
+	"DROP TABLE `" . DATABASE_NAME ."`.`pendingMACS`",
+	"ALTER IGNORE TABLE `" .DATABASE_NAME ."`.`hostMAC` ADD UNIQUE INDEX `hmHostID` (`hmMAC`)",
+);
 print '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">';
 print "\n".'<html xmlns="http://www.w3.org/1999/xhtml">';
 print "\n\t<head>";
