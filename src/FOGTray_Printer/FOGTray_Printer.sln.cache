@@ -31,11 +31,11 @@
     <AspNetConfiguration>$(Configuration)</AspNetConfiguration>
   </PropertyGroup>
   <PropertyGroup>
-    <SolutionDir>C:\Users\FinancedHydra\Desktop\src\FOGTray_Printer\</SolutionDir>
+    <SolutionDir>D:\fogproject\FOGService\src\FOGTray_Printer\</SolutionDir>
     <SolutionExt>.sln</SolutionExt>
     <SolutionFileName>FOGTray_Printer.sln</SolutionFileName>
     <SolutionName>FOGTray_Printer</SolutionName>
-    <SolutionPath>C:\Users\FinancedHydra\Desktop\src\FOGTray_Printer\FOGTray_Printer.sln</SolutionPath>
+    <SolutionPath>D:\fogproject\FOGService\src\FOGTray_Printer\FOGTray_Printer.sln</SolutionPath>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFrameworkVersion Condition="'$(TargetFrameworkVersion)' == '' and '$(MSBuildToolsVersion)' == '2.0'">v2.0</TargetFrameworkVersion>

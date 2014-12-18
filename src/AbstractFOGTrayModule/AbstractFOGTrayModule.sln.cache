@@ -31,11 +31,11 @@
     <AspNetConfiguration>$(Configuration)</AspNetConfiguration>
   </PropertyGroup>
   <PropertyGroup>
-    <SolutionDir>C:\Users\FinancedHydra\Desktop\src\AbstractFOGTrayModule\</SolutionDir>
+    <SolutionDir>D:\fogproject\FOGService\src\AbstractFOGTrayModule\</SolutionDir>
     <SolutionExt>.sln</SolutionExt>
     <SolutionFileName>AbstractFOGTrayModule.sln</SolutionFileName>
     <SolutionName>AbstractFOGTrayModule</SolutionName>
-    <SolutionPath>C:\Users\FinancedHydra\Desktop\src\AbstractFOGTrayModule\AbstractFOGTrayModule.sln</SolutionPath>
+    <SolutionPath>D:\fogproject\FOGService\src\AbstractFOGTrayModule\AbstractFOGTrayModule.sln</SolutionPath>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFrameworkVersion Condition="'$(TargetFrameworkVersion)' == '' and '$(MSBuildToolsVersion)' == '2.0'">v2.0</TargetFrameworkVersion>

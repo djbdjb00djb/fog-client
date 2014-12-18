@@ -13,3 +13,6 @@ D:\fog\FOG Service\src\FOG_HostRegister\obj\Debug\HostRegister.dll
 D:\fog\FOGService\src\build\HostRegister.dll
 D:\fog\FOGService\src\FOG_HostRegister\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOG_HostRegister\obj\Debug\HostRegister.dll
+D:\fogproject\FOGService\src\build\HostRegister.dll
+D:\fogproject\FOGService\src\FOG_HostRegister\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG_HostRegister\obj\Debug\HostRegister.dll

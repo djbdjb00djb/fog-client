@@ -25,3 +25,9 @@ D:\fog\FOGService\src\fog_alo\obj\Debug\FOG.ALOForm.resources
 D:\fog\FOGService\src\fog_alo\obj\Debug\FOG.Properties.Resources.resources
 D:\fog\FOGService\src\fog_alo\obj\Debug\AutoLogOut.csproj.GenerateResource.Cache
 D:\fog\FOGService\src\fog_alo\obj\Debug\AutoLogOut.dll
+D:\fogproject\FOGService\src\build\AutoLogOut.dll
+D:\fogproject\FOGService\src\fog_alo\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\fog_alo\obj\Debug\FOG.ALOForm.resources
+D:\fogproject\FOGService\src\fog_alo\obj\Debug\FOG.Properties.Resources.resources
+D:\fogproject\FOGService\src\fog_alo\obj\Debug\AutoLogOut.csproj.GenerateResource.Cache
+D:\fogproject\FOGService\src\fog_alo\obj\Debug\AutoLogOut.dll

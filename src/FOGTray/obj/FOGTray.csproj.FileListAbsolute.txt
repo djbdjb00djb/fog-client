@@ -37,3 +37,11 @@ D:\fog\FOGService\src\FOGTray\obj\Debug\FOGTray.Properties.Resources.resources
 D:\fog\FOGService\src\FOGTray\obj\Debug\FOGTray.csproj.GenerateResource.Cache
 D:\fog\FOGService\src\FOGTray\obj\Debug\FOGTray.exe
 D:\fog\FOGService\src\FOGTray\obj\Debug\FOGTray.pdb
+D:\fogproject\FOGService\src\build\FOGTray.exe
+D:\fogproject\FOGService\src\build\FOGTray.pdb
+D:\fogproject\FOGService\src\FOGTray\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOGTray\obj\Debug\FOGTray.frmMain.resources
+D:\fogproject\FOGService\src\FOGTray\obj\Debug\FOGTray.Properties.Resources.resources
+D:\fogproject\FOGService\src\FOGTray\obj\Debug\FOGTray.csproj.GenerateResource.Cache
+D:\fogproject\FOGService\src\FOGTray\obj\Debug\FOGTray.exe
+D:\fogproject\FOGService\src\FOGTray\obj\Debug\FOGTray.pdb

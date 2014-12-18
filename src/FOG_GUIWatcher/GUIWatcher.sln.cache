@@ -31,11 +31,11 @@
     <AspNetConfiguration>$(Configuration)</AspNetConfiguration>
   </PropertyGroup>
   <PropertyGroup>
-    <SolutionDir>C:\Users\FinancedHydra\Desktop\src\FOG_GUIWatcher\</SolutionDir>
+    <SolutionDir>D:\fogproject\FOGService\src\FOG_GUIWatcher\</SolutionDir>
     <SolutionExt>.sln</SolutionExt>
     <SolutionFileName>GUIWatcher.sln</SolutionFileName>
     <SolutionName>GUIWatcher</SolutionName>
-    <SolutionPath>C:\Users\FinancedHydra\Desktop\src\FOG_GUIWatcher\GUIWatcher.sln</SolutionPath>
+    <SolutionPath>D:\fogproject\FOGService\src\FOG_GUIWatcher\GUIWatcher.sln</SolutionPath>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFrameworkVersion Condition="'$(TargetFrameworkVersion)' == '' and '$(MSBuildToolsVersion)' == '2.0'">v2.0</TargetFrameworkVersion>

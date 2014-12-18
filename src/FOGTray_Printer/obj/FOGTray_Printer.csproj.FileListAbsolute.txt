@@ -21,3 +21,8 @@ D:\fog\FOGService\src\build\FOGTray_Printer.pdb
 D:\fog\FOGService\src\FOGTray_Printer\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOGTray_Printer\obj\Debug\FOGTray_Printer.dll
 D:\fog\FOGService\src\FOGTray_Printer\obj\Debug\FOGTray_Printer.pdb
+D:\fogproject\FOGService\src\build\FOGTray_Printer.dll
+D:\fogproject\FOGService\src\build\FOGTray_Printer.pdb
+D:\fogproject\FOGService\src\FOGTray_Printer\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOGTray_Printer\obj\Debug\FOGTray_Printer.dll
+D:\fogproject\FOGService\src\FOGTray_Printer\obj\Debug\FOGTray_Printer.pdb

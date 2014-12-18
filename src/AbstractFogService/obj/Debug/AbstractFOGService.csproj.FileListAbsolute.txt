@@ -29,3 +29,10 @@ D:\fog\FOGService\src\AbstractFogService\obj\Debug\FOG.FrmUI.resources
 D:\fog\FOGService\src\AbstractFogService\obj\Debug\FOG.Properties.Resources.resources
 D:\fog\FOGService\src\AbstractFogService\obj\Debug\AbstractFOGService.csproj.GenerateResource.Cache
 D:\fog\FOGService\src\AbstractFogService\obj\Debug\AbstractFOGService.dll
+D:\fogproject\FOGService\src\build\AbstractFOGService.dll
+D:\fogproject\FOGService\src\AbstractFogService\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\AbstractFogService\obj\Debug\AbstractFOGService.csproj.ResolveComReference.cache
+D:\fogproject\FOGService\src\AbstractFogService\obj\Debug\FOG.FrmUI.resources
+D:\fogproject\FOGService\src\AbstractFogService\obj\Debug\FOG.Properties.Resources.resources
+D:\fogproject\FOGService\src\AbstractFogService\obj\Debug\AbstractFOGService.csproj.GenerateResource.Cache
+D:\fogproject\FOGService\src\AbstractFogService\obj\Debug\AbstractFOGService.dll

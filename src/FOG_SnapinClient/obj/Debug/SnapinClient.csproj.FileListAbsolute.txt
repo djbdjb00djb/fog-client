@@ -11,3 +11,6 @@ D:\fog\FOG Service\src\FOG_SnapinClient\obj\Debug\SnapinClient.dll
 D:\fog\FOGService\src\build\SnapinClient.dll
 D:\fog\FOGService\src\FOG_SnapinClient\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOG_SnapinClient\obj\Debug\SnapinClient.dll
+D:\fogproject\FOGService\src\build\SnapinClient.dll
+D:\fogproject\FOGService\src\FOG_SnapinClient\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG_SnapinClient\obj\Debug\SnapinClient.dll

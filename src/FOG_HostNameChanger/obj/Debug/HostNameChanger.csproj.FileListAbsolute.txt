@@ -14,3 +14,6 @@ D:\fog\FOG Service\src\FOG_HostNameChanger\obj\Debug\HostnameChange.dll
 D:\fog\FOGService\src\build\HostnameChange.dll
 D:\fog\FOGService\src\FOG_HostNameChanger\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOG_HostNameChanger\obj\Debug\HostnameChange.dll
+D:\fogproject\FOGService\src\build\HostnameChange.dll
+D:\fogproject\FOGService\src\FOG_HostNameChanger\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG_HostNameChanger\obj\Debug\HostnameChange.dll

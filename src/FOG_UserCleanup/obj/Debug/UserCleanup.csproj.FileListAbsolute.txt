@@ -13,3 +13,6 @@ D:\fog\FOG Service\src\FOG_UserCleanup\obj\Debug\UserCleanup.dll
 D:\fog\FOGService\src\build\UserCleanup.dll
 D:\fog\FOGService\src\FOG_UserCleanup\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOG_UserCleanup\obj\Debug\UserCleanup.dll
+D:\fogproject\FOGService\src\build\UserCleanup.dll
+D:\fogproject\FOGService\src\FOG_UserCleanup\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG_UserCleanup\obj\Debug\UserCleanup.dll

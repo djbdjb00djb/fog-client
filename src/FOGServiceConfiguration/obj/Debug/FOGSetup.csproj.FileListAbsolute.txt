@@ -44,3 +44,11 @@ D:\fog\FOGService\src\FOGServiceConfiguration\obj\Debug\FOG.Properties.Resources
 D:\fog\FOGService\src\FOGServiceConfiguration\obj\Debug\FOGSetup.csproj.GenerateResource.Cache
 D:\fog\FOGService\src\FOGServiceConfiguration\obj\Debug\FOGServiceConfig.exe
 D:\fog\FOGService\src\FOGServiceConfiguration\obj\Debug\FOGServiceConfig.pdb
+D:\fogproject\FOGService\src\build\FOGServiceConfig.exe
+D:\fogproject\FOGService\src\build\FOGServiceConfig.pdb
+D:\fogproject\FOGService\src\FOGServiceConfiguration\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOGServiceConfiguration\obj\Debug\FOG.FrmSetup.resources
+D:\fogproject\FOGService\src\FOGServiceConfiguration\obj\Debug\FOG.Properties.Resources.resources
+D:\fogproject\FOGService\src\FOGServiceConfiguration\obj\Debug\FOGSetup.csproj.GenerateResource.Cache
+D:\fogproject\FOGService\src\FOGServiceConfiguration\obj\Debug\FOGServiceConfig.exe
+D:\fogproject\FOGService\src\FOGServiceConfiguration\obj\Debug\FOGServiceConfig.pdb

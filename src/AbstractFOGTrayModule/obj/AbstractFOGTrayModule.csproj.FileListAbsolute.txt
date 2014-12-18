@@ -18,3 +18,6 @@ D:\fog\FOG Service\src\AbstractFOGTrayModule\obj\Debug\AbstractFOGTrayModule.dll
 D:\fog\FOGService\src\build\AbstractFOGTrayModule.dll
 D:\fog\FOGService\src\AbstractFOGTrayModule\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\AbstractFOGTrayModule\obj\Debug\AbstractFOGTrayModule.dll
+D:\fogproject\FOGService\src\build\AbstractFOGTrayModule.dll
+D:\fogproject\FOGService\src\AbstractFOGTrayModule\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\AbstractFOGTrayModule\obj\Debug\AbstractFOGTrayModule.dll

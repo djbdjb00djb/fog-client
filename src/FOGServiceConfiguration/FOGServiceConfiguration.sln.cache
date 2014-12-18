@@ -31,11 +31,11 @@
     <AspNetConfiguration>$(Configuration)</AspNetConfiguration>
   </PropertyGroup>
   <PropertyGroup>
-    <SolutionDir>C:\Users\FinancedHydra\Desktop\src\FOGServiceConfiguration\</SolutionDir>
+    <SolutionDir>D:\fogproject\FOGService\src\FOGServiceConfiguration\</SolutionDir>
     <SolutionExt>.sln</SolutionExt>
     <SolutionFileName>FOGServiceConfiguration.sln</SolutionFileName>
     <SolutionName>FOGServiceConfiguration</SolutionName>
-    <SolutionPath>C:\Users\FinancedHydra\Desktop\src\FOGServiceConfiguration\FOGServiceConfiguration.sln</SolutionPath>
+    <SolutionPath>D:\fogproject\FOGService\src\FOGServiceConfiguration\FOGServiceConfiguration.sln</SolutionPath>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFrameworkVersion Condition="'$(TargetFrameworkVersion)' == '' and '$(MSBuildToolsVersion)' == '2.0'">v2.0</TargetFrameworkVersion>

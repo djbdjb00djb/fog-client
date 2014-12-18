@@ -31,11 +31,11 @@
     <AspNetConfiguration>$(Configuration)</AspNetConfiguration>
   </PropertyGroup>
   <PropertyGroup>
-    <SolutionDir>C:\Users\FinancedHydra\Desktop\src\fog_alo\</SolutionDir>
+    <SolutionDir>D:\fogproject\FOGService\src\fog_alo\</SolutionDir>
     <SolutionExt>.sln</SolutionExt>
     <SolutionFileName>AutoLogOut.sln</SolutionFileName>
     <SolutionName>AutoLogOut</SolutionName>
-    <SolutionPath>C:\Users\FinancedHydra\Desktop\src\fog_alo\AutoLogOut.sln</SolutionPath>
+    <SolutionPath>D:\fogproject\FOGService\src\fog_alo\AutoLogOut.sln</SolutionPath>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFrameworkVersion Condition="'$(TargetFrameworkVersion)' == '' and '$(MSBuildToolsVersion)' == '2.0'">v2.0</TargetFrameworkVersion>

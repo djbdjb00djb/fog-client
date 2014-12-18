@@ -13,3 +13,6 @@ D:\fog\FOG Service\src\FOG_PrinterManager\obj\Debug\PrinterManager.dll
 D:\fog\FOGService\src\build\PrinterManager.dll
 D:\fog\FOGService\src\FOG_PrinterManager\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOG_PrinterManager\obj\Debug\PrinterManager.dll
+D:\fogproject\FOGService\src\build\PrinterManager.dll
+D:\fogproject\FOGService\src\FOG_PrinterManager\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG_PrinterManager\obj\Debug\PrinterManager.dll

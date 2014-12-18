@@ -53,3 +53,10 @@ D:\fog\FOGService\src\FOG Service\obj\Debug\FOG.FogService.resources
 D:\fog\FOGService\src\FOG Service\obj\Debug\Dist88ServiceManager.ProjectInstaller.resources
 D:\fog\FOGService\src\FOG Service\obj\Debug\FOGService.csproj.GenerateResource.Cache
 D:\fog\FOGService\src\FOG Service\obj\Debug\FOGService.exe
+D:\fogproject\FOGService\src\build\FOGService.exe
+D:\fogproject\FOGService\src\FOG Service\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG Service\obj\Debug\FOGService.csproj.ResolveComReference.cache
+D:\fogproject\FOGService\src\FOG Service\obj\Debug\FOG.FogService.resources
+D:\fogproject\FOGService\src\FOG Service\obj\Debug\Dist88ServiceManager.ProjectInstaller.resources
+D:\fogproject\FOGService\src\FOG Service\obj\Debug\FOGService.csproj.GenerateResource.Cache
+D:\fogproject\FOGService\src\FOG Service\obj\Debug\FOGService.exe

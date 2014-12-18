@@ -13,3 +13,6 @@ D:\fog\FOG Service\src\FOG_NamePipeServer\obj\Debug\NamedPipes.dll
 D:\fog\FOGService\src\build\NamedPipes.dll
 D:\fog\FOGService\src\FOG_NamePipeServer\obj\Debug\ResolveAssemblyReference.cache
 D:\fog\FOGService\src\FOG_NamePipeServer\obj\Debug\NamedPipes.dll
+D:\fogproject\FOGService\src\build\NamedPipes.dll
+D:\fogproject\FOGService\src\FOG_NamePipeServer\obj\Debug\ResolveAssemblyReference.cache
+D:\fogproject\FOGService\src\FOG_NamePipeServer\obj\Debug\NamedPipes.dll

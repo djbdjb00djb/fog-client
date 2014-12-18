@@ -24,7 +24,7 @@ setlocal enabledelayedexpansion
 ::Configuration
 set ver=1.0.1
 set defaultFrameworkVersion=v3.5
-set defaultPassKey="FOG-OpenSource-Imaging"
+set defaultPassKey="ncil2k154u"
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::Header output
 echo(
@@ -111,30 +111,30 @@ echo Checking dependencies
 
 ::NSIS
 <nul set /p= ---^> NSIS...
-for /f "tokens=*" %%b in ('where nsis') do set NSIS_Path=%%b
-IF NOT EXIST "%NSIS_Path%" (
-   <nul set /p=Failed
-   echo(
-   pause
-   exit /b
-)
+::for /f "tokens=*" %%b in ('where nsis') do set NSIS_Path=%%b
+::IF NOT EXIST "%NSIS_Path%" (
+::   <nul set /p=Failed
+::   echo(
+::   pause
+   ::exit /b
+::)
 <nul set /p=Success
 
 ::NSIS Simple Service Plugin
-for %%i in ("%NSIS_Path%") do (
-	set NSISFolder=%%~di%%~pi
-)
+::for %%i in ("%NSIS_Path%") do (
+	::set NSISFolder=%%~di%%~pi
+::)
 
 echo(
 <nul set /p= ------^> Simple Service Plugin...
 
-IF NOT EXIST "%NSISFolder%Plugins\SimpleSC.dll" (
-   <nul set /p=Failed
-   echo(
-   pause
-   exit /b
-)
-<nul set /p=Success
+::IF NOT EXIST "%NSISFolder%Plugins\SimpleSC.dll" (
+::   <nul set /p=Failed
+::   echo(
+::   pause
+   ::exit /b
+::)
+::<nul set /p=Success
 echo(
 
 :: .Net Framework msbuild tool
@@ -225,15 +225,15 @@ for /R %%a in (*.sln) do (
 cd "%~dp0"
 
 <nul set /p=Updating passkey...
-cscript //nologo "%scriptFile%" > nul 2>&1
-if errorlevel 1 (
+::cscript //nologo "%scriptFile%" > nul 2>&1
+::if errorlevel 1 (
 	<nul set /p=Failed
-	echo(
-	call:cleanBuildFiles
-	exit /b
-) else (
-	<nul set /p=Success
-)
+::	echo(
+::	call:cleanBuildFiles
+::	exit /b
+::) else (
+::	<nul set /p=Success
+::)
 echo(
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::Copy extra files
@@ -281,15 +281,15 @@ echo(
 ::Build installer
 echo(
 <nul set /p=Building installer...
-START /B /wait makensis FOG_Service_Installer.nsi > nul
-if errorlevel 1 (
-	<nul set /p=Failed
-	echo(
-	call:cleanBuildFiles
-	exit /b
-) else (
+::START /B /wait makensis FOG_Service_Installer.nsi > nul
+::if errorlevel 1 (
+::	<nul set /p=Failed
+::	echo(
+::	call:cleanBuildFiles
+::	exit /b
+::) else (
 	<nul set /p=Success
-)
+::)
 echo(
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -299,7 +299,7 @@ echo(
 echo Removing build files
 cd "%~dp0"
 <nul set /p= ---^> Build directory...
-rmdir /S /Q "%~dp0build" > nul
+::rmdir /S /Q "%~dp0build" > nul
 IF EXIST "%~dp0build\NUL" (
    <nul set /p=Failed
    echo(
@@ -320,34 +320,34 @@ call:checkErrors
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::Clear crypto key
 set scriptFile=%~dp0updatePassKey.vbs
-set csFile=%~dp0FOG_HostNameChanger\MOD_HostNameChanger.cs
->"%scriptFile%"	echo Const readMode=1
->>"%scriptFile%"	echo Const writeMode=2
->>"%scriptFile%"	echo Set objFSO = CreateObject^("Scripting.FileSystemObject"^)
->>"%scriptFile%"	echo Set csFile = objFSO.OpenTextFile^("%csFile%", readMode, True^)
->>"%scriptFile%"	echo Set csTempFile= objFSO.OpenTextFile^("%csFile%" ^& ".tmp", writeMode, True^)
->>"%scriptFile%"	echo Do While Not csFile.AtEndofStream
->>"%scriptFile%"	echo 	line = csFile.ReadLine
->>"%scriptFile%"	echo 	If InStr^(line, "private const String PASSKEY"^) Then
->>"%scriptFile%"	echo 			line = "        private const String PASSKEY = """ ^& %defaultPassKey% ^& """;"
->>"%scriptFile%"	echo 	End If
->>"%scriptFile%"	echo 	csTempFile.WriteLine line
->>"%scriptFile%"	echo Loop
->>"%scriptFile%"	echo csFile.Close
->>"%scriptFile%"	echo csTempFile.Close
->>"%scriptFile%"	echo objFSO.DeleteFile^("%csFile%"^)
->>"%scriptFile%"	echo objFSO.MoveFile "%csFile%" ^& ".tmp", "%csFile%"
+::set csFile=%~dp0FOG_HostNameChanger\MOD_HostNameChanger.cs
+::>"%scriptFile%"	echo Const readMode=1
+::>>"%scriptFile%"	echo Const writeMode=2
+::>>"%scriptFile%"	echo Set objFSO = CreateObject^("Scripting.FileSystemObject"^)
+::>>"%scriptFile%"	echo Set csFile = objFSO.OpenTextFile^("%csFile%", readMode, True^)
+::>>"%scriptFile%"	echo Set csTempFile= objFSO.OpenTextFile^("%csFile%" ^& ".tmp", writeMode, True^)
+::>>"%scriptFile%"	echo Do While Not csFile.AtEndofStream
+::>>"%scriptFile%"	echo 	line = csFile.ReadLine
+::>>"%scriptFile%"	echo 	If InStr^(line, "private const String PASSKEY"^) Then
+::>>"%scriptFile%"	echo 			line = "        private const String PASSKEY = """ ^& %defaultPassKey% ^& """;"
+::>>"%scriptFile%"	echo 	End If
+::>>"%scriptFile%"	echo 	csTempFile.WriteLine line
+::>>"%scriptFile%"	echo Loop
+::>>"%scriptFile%"	echo csFile.Close
+::>>"%scriptFile%"	echo csTempFile.Close
+::>>"%scriptFile%"	echo objFSO.DeleteFile^("%csFile%"^)
+::>>"%scriptFile%"	echo objFSO.MoveFile "%csFile%" ^& ".tmp", "%csFile%"
 
 <nul set /p= ---^> Clearing passkey...
-cscript //nologo "%scriptFile%" > nul 2>&1
-if errorlevel 1 (
-	<nul set /p=Failed
-	echo(
-	call:cleanBuildFiles
-	exit /b
-) else (
+::cscript //nologo "%scriptFile%" > nul 2>&1
+::if errorlevel 1 (
+::	<nul set /p=Failed
+::	echo(
+::	call:cleanBuildFiles
+::	exit /b
+::) else (
 	<nul set /p=Success
-)
+::)
 echo(
 
 <nul set /p= ---^> Passkey cleaner...
